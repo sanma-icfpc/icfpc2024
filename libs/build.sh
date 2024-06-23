@@ -32,8 +32,9 @@ mkdir -p glog_build
 cmake -S glog \
       -B glog_build \
       -DWITH_GFLAGS:BOOL=ON \
-      -DBUILD_TESTING:BOOL=OFF \
       -DBUILD_SHARED_LIBS:BOOL=OFF \
+      -DBUILD_TESTING:BOOL=OFF \
+      -DHAVE_LIB_GFLAGS=1 \
       --install-prefix $(pwd)/glog_build \
       -G "Unix Makefiles" || exit 1
 pushd glog_build

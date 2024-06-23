@@ -10,7 +10,8 @@
 
 #include <gflags/gflags.h>
 
-DECLARE_string(problem_dir);
+DECLARE_string(problems_dir);
+DECLARE_string(solutions_dir);
 
 namespace util {
 
