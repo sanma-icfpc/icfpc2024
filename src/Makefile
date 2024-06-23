@@ -10,14 +10,16 @@ CXXFLAGS+=-include stdafx.h
 
 
 # header-only libraries
-CXXFLAGS+=-I$(LIB_PATH)/CLI11/include
 CXXFLAGS+=-I$(LIB_PATH)/json/include
 
 # pre-built libraries
 CXXFLAGS+=-I$(LIB_PATH)/fmt/include
 LDFLAGS+=-L$(LIB_PATH)/fmt/build -lfmt
 
-CXXFLAGS+=-I$(LIB_PATH)/glog_build/include
+CXXFLAGS+=-I$(LIB_PATH)/gflags_build/include
+LDFLAGS+=-L$(LIB_PATH)/gflags_build/lib -Wl,-rpath -lgflags
+
+CXXFLAGS+=-DGLOG_USE_GLOG_EXPORT=1 -I$(LIB_PATH)/glog_build/include
 LDFLAGS+=-L$(LIB_PATH)/glog_build/lib -Wl,-rpath -lglog
 
 CXXFLAGS+=-I/usr/include/opencv4 -I/mingw64/include/opencv4 -DUSE_OPENCV -fopenmp

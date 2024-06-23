@@ -16,6 +16,7 @@
 #include <time.h>
 #endif
 
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #endif  // __SANMA_STDAFX_H__

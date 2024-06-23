@@ -10,6 +10,6 @@
 [submodule "libs/fmt"]
 	path = libs/fmt
 	url = https://github.com/fmtlib/fmt.git
-[submodule "libs/CLI11"]
-	path = libs/CLI11
-	url = https://github.com/CLIUtils/CLI11.git
+[submodule "libs/gflags"]
+	path = libs/gflags
+	url = https://github.com/gflags/gflags.git
