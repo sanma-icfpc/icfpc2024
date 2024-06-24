@@ -7,9 +7,12 @@
 
 using Json = nlohmann::json;
 
-Problem::Problem(const nlohmann::json& json) : problem_id_(0) {
+Problem::Problem(const nlohmann::json& json) {
   if (json.contains("problem_id")) {
-    problem_id_ = json["problem_id"];
+    problem_id = json["problem_id"];
+  }
+  if (json.contains("dummy_data")) {
+    dummy_data = json["dummy_data"];
   }
 }
 
