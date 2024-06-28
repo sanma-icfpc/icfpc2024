@@ -5,7 +5,7 @@ set -euxo pipefail
 cd "$(dirname $(dirname "$0"))"
 BASE_DIR=$(pwd)
 LIBS_DIR=${BASE_DIR}/libs
-SCRIPTS_DIR=${BASE_DIR}/scrips
+SCRIPTS_DIR=${BASE_DIR}/scripts
 
 # HACK: VS2022 と WSL で pwd を合わせる
 pushd vs/ || echo ""
