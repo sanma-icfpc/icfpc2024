@@ -2,6 +2,7 @@
 
 import os
 import json
+import colorama
 import urllib.request
 
 # https://boundvariable.space/communicate
@@ -11,8 +12,9 @@ HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
 def terminal():
     while True:
-        print("> ", end="")
+        print(colorama.Back.BLUE + "> ", end="")
         command = input()
+        print(colorama.Back.RESET, end="")
         cryptic_command = 'S' + encrypt(command)
         # print("Cryptic: ", cryptic_command)
         request = urllib.request.Request(f"https://{URL_DOMAIN}/communicate",
@@ -24,7 +26,8 @@ def terminal():
         #                         data=cryptic_command,
         #                         headers=HEADERS)
         # print("Cryptic response: ", response)
-        plain_response = decrypt(response)
+        if response.startswith('S'):
+            plain_response = decrypt(response[1:])
         print("Response: ")
         print(plain_response)
 
@@ -40,5 +43,6 @@ def encrypt(s):
     return ''.join(chr(m[c] + 33) for c in s)
 
 if __name__ == '__main__':
+    colorama.init(autoreset=False)
     terminal()
 
