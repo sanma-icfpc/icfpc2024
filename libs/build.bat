@@ -18,7 +18,9 @@ pushd %~dp0
 if not exist gflags_vsbuild mkdir gflags_vsbuild
 cmake -S gflags -B gflags_vsbuild -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DBUILD_TESTING=OFF --install-prefix=%cd%\gflags_vsbuild -G "Visual Studio 17 2022" || exit /b 1
 cmake --build gflags_vsbuild --config Debug || exit /b 1
+cmake --install gflags_vsbuild --config Debug || exit /b 1
 cmake --build gflags_vsbuild --config Release || exit /b 1
+cmake --install gflags_vsbuild --config Release || exit /b 1
 popd
 
 echo Building glog
