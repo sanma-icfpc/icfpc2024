@@ -26,7 +26,7 @@ popd
 echo Building glog
 pushd %~dp0
 if not exist glog_vsbuild mkdir glog_vsbuild
-cmake -S glog -B glog_vsbuild -DWITH_GFLAGS=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DHAVE_LIB_GFLAGS=1 --install-prefix=%cd%\glog_vsbuild -G "Visual Studio 17 2022" || exit /b 1
+cmake -S glog -B glog_vsbuild -DWITH_GFLAGS=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DBUILD_TESTING=OFF -DHAVE_LIB_GFLAGS=1 --install-prefix=%cd%\glog_vsbuild -G "Visual Studio 17 2022" || exit /b 1
 cmake --build glog_vsbuild --config Debug || exit /b 1
 cmake --install glog_vsbuild --config Debug || exit /b 1
 cmake --build glog_vsbuild --config Release || exit /b 1
@@ -36,9 +36,11 @@ popd
 echo Building gtest
 pushd %~dp0
 if not exist gtest_vsbuild mkdir gtest_vsbuild
-cmake -S gtest -B gtest_vsbuild -DBUILD_GMOCK=OFF -G "Visual Studio 17 2022" || exit /b 1
+cmake -S gtest -B gtest_vsbuild -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -Dgtest_force_shared_crt=ON -DBUILD_TESTING=OFF -DBUILD_GMOCK=OFF --install-prefix=%cd%\gtest_vsbuild -G "Visual Studio 17 2022" || exit /b 1
 cmake --build gtest_vsbuild --config Debug || exit /b 1
+cmake --install gtest_vsbuild --config Debug || exit /b 1
 cmake --build gtest_vsbuild --config Release || exit /b 1
+cmake --install gtest_vsbuild --config Release || exit /b 1
 popd
 
 endlocal
