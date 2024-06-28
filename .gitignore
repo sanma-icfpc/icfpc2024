@@ -32,3 +32,12 @@
 *.app
 
 /out
+
+# VS
+*.vcxproj.user
+.vs
+/vs/x64
+
+# build directories
+libs/*_build
+libs/*_vsbuild
