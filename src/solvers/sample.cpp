@@ -1,4 +1,5 @@
 #include "sample.h"
+#include <glog/logging.h>
 
 #include "problem.h"
 #include "solution.h"

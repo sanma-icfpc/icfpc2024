@@ -6,22 +6,24 @@
   <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_SILENCE_CXX20_CISO646_REMOVED_WARNING;GOOGLE_GLOG_DLL_DECL=</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\libs\fmt\include;$(ProjectDir)..\src;$(ProjectDir)..\libs\json\include;$(ProjectDir)..\libs\glog_vsbuild;$(ProjectDir)..\libs\glog\src;$(ProjectDir)..\libs\gflags_vsbuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SILENCE_CXX20_CISO646_REMOVED_WARNING;GLOG_USE_GLOG_EXPORT;GOOGLE_GLOG_DLL_DECL=</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\libs\fmt\include;$(ProjectDir)..\src;$(ProjectDir)..\libs\json\include;$(ProjectDir)..\libs\glog_vsbuild\include;$(ProjectDir)..\libs\gflags_vsbuild\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\libs\fmt\vsbuild\$(Configuration);$(ProjectDir)..\libs\glog_vsbuild\$(Configuration);$(ProjectDir)..\libs\gflags_vsbuild\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>fmtd.lib;glogd.lib;gflags_staticd.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\libs\fmt\vsbuild\$(Configuration);$(ProjectDir)..\libs\glog_vsbuild\$(Configuration);$(ProjectDir)..\libs\gflags_vsbuild\lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>fmtd.lib;glogd.lib;gflags_static_debug.lib;dbghelp.lib;shlwapi.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_SILENCE_CXX20_CISO646_REMOVED_WARNING;GOOGLE_GLOG_DLL_DECL=</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\libs\fmt\include;$(ProjectDir)..\src;$(ProjectDir)..\libs\json\include;$(ProjectDir)..\libs\glog_vsbuild;$(ProjectDir)..\libs\glog\src;$(ProjectDir)..\libs\gflags_vsbuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SILENCE_CXX20_CISO646_REMOVED_WARNING;GLOG_USE_GLOG_EXPORT;GOOGLE_GLOG_DLL_DECL=</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\libs\fmt\include;$(ProjectDir)..\src;$(ProjectDir)..\libs\json\include;$(ProjectDir)..\libs\glog_vsbuild\include;$(ProjectDir)..\libs\gflags_vsbuild\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\libs\fmt\vsbuild\$(Configuration);$(ProjectDir)..\libs\glog_vsbuild\$(Configuration);$(ProjectDir)..\libs\gflags_vsbuild\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>fmt.lib;glog.lib;gflags_static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\libs\fmt\vsbuild\$(Configuration);$(ProjectDir)..\libs\glog_vsbuild\$(Configuration);$(ProjectDir)..\libs\gflags_vsbuild\lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>fmt.lib;glog.lib;gflags_static.lib;dbghelp.lib;shlwapi.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />
