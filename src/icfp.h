@@ -16,6 +16,9 @@ public:
     virtual std::shared_ptr<ICFPValue> applyUnaryOperator(const char op) const {
         throw std::runtime_error("Unsupported operation.");
     }
+    virtual std::shared_ptr<ICFPValue> applyBinaryOperator(const char op, const ICFPValue& right) const {
+        throw std::runtime_error("Unsupported binary operation.");
+    }
 };
 
 class BooleanValue : public ICFPValue {
@@ -46,6 +49,20 @@ public:
             return std::make_shared<BooleanValue>(!value);
         }
         return ICFPValue::applyUnaryOperator(op);
+    }
+
+    std::shared_ptr<ICFPValue> applyBinaryOperator(const char op, const ICFPValue& right) const override {
+        const auto& rightVal = dynamic_cast<const BooleanValue&>(right);
+        switch (op) {
+            case '|':
+                return std::make_shared<BooleanValue>(value || rightVal.value);
+            case '&':
+                return std::make_shared<BooleanValue>(value && rightVal.value);
+            case '=':
+                return std::make_shared<BooleanValue>(value == rightVal.value);
+            default:
+                return ICFPValue::applyBinaryOperator(op, right);
+        }
     }
 };
 
@@ -86,6 +103,8 @@ public:
     }
 
     std::shared_ptr<ICFPValue> applyUnaryOperator(const char op) const override;
+
+    std::shared_ptr<ICFPValue> applyBinaryOperator(const char op, const ICFPValue& right) const;
 };
 
 class StringValue : public ICFPValue {
@@ -140,5 +159,15 @@ public:
         return ICFPValue::applyUnaryOperator(op);
     }
 
-};
+    std::shared_ptr<ICFPValue> applyBinaryOperator(const char op, const ICFPValue& right) const override {
+        if (op == '.') {
+            const auto& rightVal = dynamic_cast<const StringValue&>(right);
+            return std::make_shared<StringValue>(value + rightVal.value);
+        } else if (op == '=') {
+            const auto& rightVal = dynamic_cast<const StringValue&>(right);
+            return std::make_shared<BooleanValue>(value == rightVal.value);
+        }
+        return ICFPValue::applyBinaryOperator(op, right);
+    }
 
+};
