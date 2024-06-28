@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+from collections import deque
 import os
 import requests
+import unittest
 
 # https://boundvariable.space/communicate
 URL_DOMAIN = "boundvariable.space"
@@ -16,25 +18,277 @@ def communicate(ascii_command, verbose=False):
     response = response.text
     if verbose:
         print("ICFP response: ", response)
-    return process(response)
+    return icfp2ascii(response)
+
+class Boolean(object):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+
+    def evaluate(self):
+        return self
+
+class Integer(object):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+
+    def evaluate(self):
+        return self
+
+class String(object):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value
+
+    def evaluate(self):
+        return self
+
+class UnaryOperator(object):
+    def __init__(self, operator, value):
+        self.operator = operator
+        self.value = value
+
+    def __str__(self):
+        return f"{self.operator}{self.value}"
+
+    def evaluate(self):
+        op = self.operator
+        val = self.value.evaluate()
+        if op == '-' and type(val) is Integer:
+            return Integer(-val.value)
+        if op == '!' and type(val) is Boolean:
+            return Boolean(not val.value)
+        if op == '#' and type(val) is String:
+            return Integer(icfp2int(val.value))
+        if op == '$' and type(val) is Integer:
+            return String(int2icfp(val.value))
+        # There can be lambdas under this.
+        return self
+
+class BinaryOperator(object):
+    def __init__(self, operator, left, right):
+        self.operator = operator
+        self.left = left
+        self.right = right
+
+    def __str__(self):
+        return f"({self.left} {self.operator} {self.right})"
+
+    def evaluate(self):
+        x = self.left.evaluate()
+        y = self.right.evaluate()
+        tx, ty = type(x), type(y)
+        op = self.operator
+        if op == '+' and tx is Integer and ty is Integer:
+            return Integer(x.value + y.value)
+        if op == '-' and tx is Integer and ty is Integer:
+            return Integer(x.value - y.value)
+        if op == '*' and tx is Integer and ty is Integer:
+            return Integer(x.value * y.value)
+        if op == '/' and tx is Integer and ty is Integer:
+            q = abs(x.value) // abs(y.value)
+            if x.value * y.value < 0:
+                q = -q
+            return Integer(q)
+        if op == '%' and tx is Integer and ty is Integer:
+            x, y = x.value, y.value
+            q = abs(x) // abs(y)
+            if x * y < 0:
+                q = -q
+            r = x - q * y
+            return Integer(r)
+        if op == '<' and tx is Integer and ty is Integer:
+            return Boolean(x.value < y.value)
+        if op == '>' and tx is Integer and ty is Integer:
+            return Boolean(x.value > y.value)
+        if op == '<' and tx is Integer and ty is Integer:
+            return Boolean(x.value < y.value)
+        if op == '=' and tx is Integer and ty is Integer:
+            return Boolean(x.value == y.value)
+        if op == '=' and tx is Boolean and ty is Boolean:
+            return Boolean(x.value == y.value)
+        if op == '=' and tx is String and ty is String:
+            return Boolean(x.value == y.value)
+        if op == '|' and tx is Boolean and ty is Boolean:
+            return Boolean(x.value or y.value)
+        if op == '&' and tx is Boolean and ty is Boolean:
+            return Boolean(x.value and y.value)
+        if op == '.' and tx is String and ty is String:
+            return String(x.value + y.value)
+        if op == 'T' and tx is Integer and ty is String:
+            return String(y.value[:x.value])
+        if op == 'D' and tx is Integer and ty is String:
+            return String(y.value[x.value:])
+        if op == '$':
+            # TODO: Implement 'Apply'
+            return self
+        return self
+
+class If(object):
+    def __init__(self, condition, true_branch, false_branch):
+        self.condition = condition
+        self.true_branch = true_branch
+        self.false_branch = false_branch
+
+    def __str__(self):
+        return f"IF {self.condition}:\nTHEN:\n{self.true_branch}\nELSE:\n{self.false_branch}"
+
+    def evaluate(self):
+        c = self.condition.evaluate()
+        t = self.true_branch.evaluate()
+        f = self.false_branch.evaluate()
+        if type(c) is Boolean:
+            return t if c else f
+        return self
+
+class LambdaArg(object):
+    def __init__(self, parameter):
+        self.parameter = parameter
+
+    def __str__(self):
+        return f"L({self.parameter})"
+
+    def evaluate(self):
+        return self
+
+class LambdaUse(object):
+    def __init__(self, parameter):
+        self.parameter = parameter
+
+    def __str__(self):
+        return f"v({self.parameter})"
+
+    def evaluate(self):
+        return self
 
 
-def process(response):
-    if response.startswith('S'):
-        return decrypt(response[1:])
-    return decrypt(response)
+def icfp2ascii(response):
+    tokens = deque(response.split(' '))
+    ast = parse(tokens)
+    ast = ast.evaluate()
+    return str(ast.evaluate())
+
+def parse(tokens):
+    token = tokens.popleft()
+    indicator, body = token[0], token[1:]
+    if indicator == 'T':
+        return Boolean(True)
+    if indicator == 'F':
+        return Boolean(False)
+    if indicator == 'I':
+        return Integer(asc2int(body))
+    if indicator == 'S':
+        return String(decrypt(body))
+    if indicator == 'U':
+        operand = parse(tokens)
+        return UnaryOperator(body, operand)
+    if indicator == 'B':
+        left = parse(tokens)
+        right = parse(tokens)
+        return BinaryOperator(body, left, right)
+    if indicator == 'L':
+        param = asc2int(body)
+        return LambdaArg(param)
+    if indicator == 'v':
+        param = asc2int(body)
+        return LambdaUse(param)
+    if indicator == '?':
+        c = parse(tokens)
+        t = parse(tokens)
+        f = parse(tokens)
+        return If(c, t, f)
+    print("Unknown indicator [{}]: {}".format(indicator, body))
+    return None
+
+
+def asc2int(body):
+    value = 0
+    for c in body:
+        value = value * 94 + ord(c) - 33
+    return value
+
+
+def int2asc(value):
+    result = []
+    while value > 0:
+        result.append(chr(value % 94 + 33))
+        value //= 94
+    return ''.join(reversed(result))
+
 
 mapping = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`|~ \n"
+crypt_map = {}
 
 def decrypt(s):
     return ''.join(mapping[ord(c) - 33] for c in s)
 
 def encrypt(s):
-    m = {}
-    for i in range(len(mapping)):
-        m[mapping[i]] = i
-    return ''.join(chr(m[c] + 33) for c in s)
+    global crypt_map
+    if len(crypt_map) == 0:
+        for i in range(len(mapping)):
+            crypt_map[mapping[i]] = i
 
+    return ''.join(chr(crypt_map[c] + 33) for c in s)
+
+def icfp2int(icfp):
+    global crypt_map
+    if len(crypt_map) == 0:
+        for i in range(len(mapping)):
+            crypt_map[mapping[i]] = i
+
+    value = 0
+    for c in icfp:
+        value = value * 94 + crypt_map[c]
+    return value
+
+def int2icfp(value):
+    result = []
+    while value > 0:
+        result.append(mapping[value % 94])
+        value //= 94
+    return ''.join(reversed(result))
+
+class TestICFP(unittest.TestCase):
+    def test_icfp2ascii(self):
+        data = [
+            ("T", "True"), # Boolean
+            ("F", "False"),
+            ("I/6", "1337"), # Integer
+            ("SB%,,/}Q/2,$_", "Hello World!"), # String
+            ("U- I$", "-3"), # Unary operator
+            ("U! T", "False"),
+            ("U# S4%34", "15818151"),
+            ("U$ I4%34", "test"),
+            ("B+ I# I$", "5"), # Binary operator
+            ("B- I$ I#", "1"),
+            ("B* I$ I#", "6"),
+            ("B/ U- I( I#", "-3"),
+            ("B% U- I( I#", "-1"),
+            ("B< I$ I#", "False"),
+            ("B> I$ I#", "True"),
+            ("B= I$ I#", "False"),
+            ("B| T F", "True"),
+            ("B& T F", "False"),
+            ("B. S4% S34", "test"),
+            ("BT I$ S4%34", "tes"),
+            ("BD I$ S4%34", "t"),
+        ]
+        for icfp, expect in data:
+            actual = icfp2ascii(icfp)
+
+            self.assertEqual(actual, expect)
+
+    def test_icfp_eval(self):
+        icfp = 'B$ L# B$ L" B+ v" v" B* I$ I# v8'
+        actual = icfp2ascii(icfp)
+        self.assertEqual(actual, "0")
 
 if __name__ == '__main__':
-    print("Do not use icfp.py directly. Use terminal.py or command.py instead.")
+    unittest.main()
