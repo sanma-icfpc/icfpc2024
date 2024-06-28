@@ -28,7 +28,9 @@ pushd %~dp0
 if not exist glog_vsbuild mkdir glog_vsbuild
 cmake -S glog -B glog_vsbuild -DWITH_GFLAGS=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DHAVE_LIB_GFLAGS=1 --install-prefix=%cd%\glog_vsbuild -G "Visual Studio 17 2022" || exit /b 1
 cmake --build glog_vsbuild --config Debug || exit /b 1
+cmake --install glog_vsbuild --config Debug || exit /b 1
 cmake --build glog_vsbuild --config Release || exit /b 1
+cmake --install glog_vsbuild --config Release || exit /b 1
 popd
 
 echo Building gtest
