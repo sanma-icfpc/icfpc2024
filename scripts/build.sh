@@ -21,6 +21,6 @@ if [ ${BUILD_LIBS} -eq 1 ]; then
   ${LIBS_DIR}/build.sh
 fi
 
-make -B -C src dirs solver test
+make -j8 -B -C src dirs solver test
 mkdir -p out
 cp src/solver out/

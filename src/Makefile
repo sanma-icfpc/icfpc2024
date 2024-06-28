@@ -32,7 +32,7 @@ LDFLAGS+=-lpthread
 #CXXFLAGS+=-DNDEBUG
 
 # add your cpp files here:
-SRCS+=util.cpp problem.cpp solution.cpp solver.cpp icfp.cpp
+SRCS+=util.cpp icfp.cpp
 OBJS=$(SRCS:%.cpp=$(BUILD_PATH)/%.o)
 DEPS=$(SRCS:%.cpp=$(BUILD_PATH)/%.d)
 
