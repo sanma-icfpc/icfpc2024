@@ -43,3 +43,4 @@ libs/*_build
 libs/*_vsbuild
 /vs/test/x64
 /vs/solver/x64
+__pycache__
