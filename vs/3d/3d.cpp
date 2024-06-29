@@ -384,8 +384,37 @@ bool ProcessTurn(std::string& submitted) {
         }
     }
 
+    // タイムワープしなかった。
+    Board new_board = board;
+
+    // 削除予定の値を削除する。
+    for (const auto& remove_target : remove_targets) {
+        int x = remove_target.x;
+        int y = remove_target.y;
+        new_board[y][x] = ".";
+    }
+
+    // 書き込み予定の値を書き込む。
+    std::vector<std::vector<bool>> written(HEIGHT, std::vector<bool>(WIDTH));
+    for (const auto& write_target : write_targets) {
+        int x = write_target.x;
+        int y = write_target.y;
+        const auto& value = write_target.value;
+        if (written[y][x]) {
+            std::printf("Conflicting writes into the same cell. x=%d y=%d value=%s,%s\n", x, y,
+                new_board[y][x].c_str(), value.c_str());
+            return false;
+        }
+
+        if (new_board[y][x] == "S") {
+            submitted = value;
+        }
+
+        new_board[y][x] = value;
+    }
+
     // タイムワープを処理する。
-    if (!time_warp_targets.empty()) {
+    if (submitted.empty() && !time_warp_targets.empty()) {
         // 異なる時間軸にタイムワープしようとしているか確認する。
         for (const auto& time_warp_target : time_warp_targets) {
             if (time_warp_target.turn != time_warp_targets.front().turn) {
@@ -428,35 +457,6 @@ bool ProcessTurn(std::string& submitted) {
         }
 
         return true;
-    }
-
-    // タイムワープしなかった。
-    Board new_board = board;
-
-    // 削除予定の値を削除する。
-    for (const auto& remove_target : remove_targets) {
-        int x = remove_target.x;
-        int y = remove_target.y;
-        new_board[y][x] = ".";
-    }
-
-    // 書き込み予定の値を書き込む。
-    std::vector<std::vector<bool>> written(HEIGHT, std::vector<bool>(WIDTH));
-    for (const auto& write_target : write_targets) {
-        int x = write_target.x;
-        int y = write_target.y;
-        const auto& value = write_target.value;
-        if (written[y][x]) {
-            std::printf("Conflicting writes into the same cell. x=%d y=%d value=%s,%s\n", x, y,
-                new_board[y][x].c_str(), value.c_str());
-            return false;
-        }
-
-        if (new_board[y][x] == "S") {
-            submitted = value;
-        }
-
-        new_board[y][x] = value;
     }
 
     HISTORY.push_back(new_board);
