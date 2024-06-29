@@ -1,4 +1,5 @@
 ﻿#include <algorithm>
+#include <array>
 #include <deque>
 #include <iostream>
 #include <limits>
@@ -19,35 +20,48 @@ struct Acceleration {
     int x;
     int y;
 
-    int ToDigit() {
+    int ToDigit() const {
         return 1 + (x + 1) + (y + 1) * 3;
     }
 };
 
-//const constexpr int MAX_POSITION = 200000;
-//const constexpr int MIN_POSITION = -MAX_POSITION;
-//const constexpr int MAX_VELOCITY = 500;
-//const constexpr int MIN_VELOCITY = -MAX_VELOCITY;
-//const constexpr int POSITION_OFFSET = MAX_POSITION;
-//const constexpr int VELOCITY_OFFSET = MAX_VELOCITY;
-const constexpr int MAX_POSITION = 100;
-const constexpr int MIN_POSITION = -MAX_POSITION;
-const constexpr int MAX_VELOCITY = 20;
-const constexpr int MIN_VELOCITY = -MAX_VELOCITY;
-const constexpr int POSITION_OFFSET = MAX_POSITION;
-const constexpr int VELOCITY_OFFSET = MAX_VELOCITY;
-std::vector<std::vector<int>> NUM_STEPS(MAX_POSITION - MIN_POSITION + 1, std::vector<int>(MAX_VELOCITY - MIN_VELOCITY + 1, std::numeric_limits<int>::max() / 2));
-std::vector<std::vector<int>> LAST_ACCELERATION(MAX_POSITION - MIN_POSITION + 1, std::vector<int>(MAX_VELOCITY - MIN_VELOCITY + 1));
+int MAX_POSITION = 1000000;
+int MIN_POSITION = -MAX_POSITION;
+int MAX_VELOCITY = 500;
+int MIN_VELOCITY = -MAX_VELOCITY;
+int POSITION_OFFSET = MAX_POSITION;
+int VELOCITY_OFFSET = MAX_VELOCITY;
+
+std::vector<int> NUM_STEPS_RAW;
+std::vector<int> LAST_ACCELERATION_RAW;
+
+int& GetNumSteps(int position, int velocity) {
+    return NUM_STEPS_RAW[(position + POSITION_OFFSET) * (MAX_VELOCITY - MIN_VELOCITY + 1) + (velocity + VELOCITY_OFFSET)];
+}
+
+int& GetLastAcceleration(int position, int velocity) {
+    return LAST_ACCELERATION_RAW[(position + POSITION_OFFSET) * (MAX_VELOCITY - MIN_VELOCITY + 1) + (velocity + VELOCITY_OFFSET)];
+}
+
 std::vector<Position> POSITIONS;
 
 void InitializeTable() {
     std::deque<State> q;
     q.push_back({ 0, 0, 0 });
-    NUM_STEPS[POSITION_OFFSET][VELOCITY_OFFSET] = 0;
+    GetNumSteps(0, 0) = 0;
 
+    int count = 0;
     while (!q.empty()) {
+        if (++count % 10000000 == 0) {
+            std::cerr << "q.size()=" << q.size() << " q.front().num_steps=" << q.front().num_steps << std::endl;
+        }
+
         State state = q.front();
         q.pop_front();
+
+        if (GetNumSteps(state.position, state.velocity) != state.num_steps) {
+            continue;
+        }
 
         for (int acceleration = -1; acceleration <= 1; ++acceleration) {
             State next_state = state;
@@ -63,19 +77,19 @@ void InitializeTable() {
                 continue;
             }
 
-            if (NUM_STEPS[next_state.position + POSITION_OFFSET][next_state.velocity + VELOCITY_OFFSET] < next_state.num_steps) {
+            if (GetNumSteps(next_state.position, next_state.velocity) <= next_state.num_steps) {
                 continue;
             }
 
-            NUM_STEPS[next_state.position + POSITION_OFFSET][next_state.velocity + VELOCITY_OFFSET] = next_state.num_steps;
-            LAST_ACCELERATION[next_state.position + POSITION_OFFSET][next_state.velocity + VELOCITY_OFFSET] = acceleration;
+            GetNumSteps(next_state.position, next_state.velocity) = next_state.num_steps;
+            GetLastAcceleration(next_state.position, next_state.velocity) = acceleration;
             q.push_back(next_state);
         }
     }
 }
 
 int GetNumSteps1D(int start, int goal) {
-    return NUM_STEPS[goal - start + POSITION_OFFSET][0];
+    return GetNumSteps(goal - start, 0);
 }
 
 void GetPath1D(int start, int goal, std::vector<int>& accelerations) {
@@ -84,7 +98,7 @@ void GetPath1D(int start, int goal, std::vector<int>& accelerations) {
     int position = goal - start;
     int velocity = 0;
     while (!(position == 0 && velocity == 0)) {
-        int last_acceleration = LAST_ACCELERATION[position + POSITION_OFFSET][velocity + VELOCITY_OFFSET];
+        int last_acceleration = GetLastAcceleration(position, velocity);
         accelerations.push_back(last_acceleration);
         position -= velocity;
         velocity -= last_acceleration;
@@ -109,10 +123,32 @@ void TestGetPath1D() {
 }
 
 void Input() {
+    POSITIONS.push_back({ 0, 0 });
+
     int x, y;
+    int min_x = std::numeric_limits<int>::max();
+    int max_x = std::numeric_limits<int>::min();
+    int min_y = std::numeric_limits<int>::max();
+    int max_y = std::numeric_limits<int>::min();
     while (std::cin >> x >> y) {
+        min_x = std::min(x, min_x);
+        max_x = std::max(x, max_x);
+        min_y = std::min(y, min_y);
+        max_y = std::max(y, max_y);
         POSITIONS.push_back({ x, y });
     }
+
+    std::cerr << "min_x=" << min_x << " max_x=" << max_x << " min_y=" << min_y << " max_y=" << max_y << std::endl;
+
+    MAX_POSITION = std::max(max_x - min_x, max_y - min_y);
+    MIN_POSITION = -MAX_POSITION;
+    MAX_VELOCITY = std::sqrt(MAX_POSITION) + 10;
+    MIN_VELOCITY = -MAX_VELOCITY;
+    POSITION_OFFSET = MAX_POSITION;
+    VELOCITY_OFFSET = MAX_VELOCITY;
+
+    NUM_STEPS_RAW.resize((MAX_POSITION - MIN_POSITION + 1) * (MAX_VELOCITY - MIN_VELOCITY + 1), std::numeric_limits<int>::max() / 2);
+    LAST_ACCELERATION_RAW.resize((MAX_POSITION - MIN_POSITION + 1) * (MAX_VELOCITY - MIN_VELOCITY + 1));
 }
 
 int GetNumSteps2D(const Position& start, const Position& goal) {
@@ -159,11 +195,27 @@ void TestGetPath2D() {
 
 int main()
 {
-    InitializeTable();
     //TestGetPath();
-    Input();
-    TestGetPath2D();
+    //TestGetPath2D();
 
+    std::cerr << "Calling InitializeTable()" << std::endl;
+    Input();
+    std::cerr << "Called InitializeTable()" << std::endl;
+
+    std::cerr << "Calling InitializeTable()" << std::endl;
+    InitializeTable();
+    std::cerr << "Called InitializeTable()" << std::endl;
+
+    for (int position_index = 0; position_index + 1 < POSITIONS.size(); ++position_index) {
+        const auto& start = POSITIONS[position_index];
+        const auto& goal = POSITIONS[position_index + 1];
+        std::vector<Acceleration> acceleration_2d;
+        GetPath2D(start, goal, acceleration_2d);
+        for (const auto& acceleration : acceleration_2d) {
+            std::cout << acceleration.ToDigit();
+        }
+    }
+    std::cout << std::endl;
 
     return 0;
 }
