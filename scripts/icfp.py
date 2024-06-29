@@ -156,10 +156,11 @@ class If(object):
 
     def evaluate(self):
         c = self.condition.evaluate()
-        t = self.true_branch.evaluate()
-        f = self.false_branch.evaluate()
         if type(c) is Boolean:
-            return t if c else f
+            if c.value:
+                return self.true_branch.evaluate()
+            else:
+                return self.false_branch.evaluate()
         return self
 
 class LambdaArg(object):
@@ -307,6 +308,8 @@ class TestICFP(unittest.TestCase):
             ("B$ L# U- v# I%", "-4"), # (v2 => - v2)(4) == -4
             ("B$ L! B+ v! I\" I$", "4"), # (v0 => v0 + 1)(3) == 4
             ("B$ L! B+ v! B$ L# U- v# I$ I% ", "1"), # (v0 => v0 + (v2 => - v2)))(3)(4) == 1
+            ("? T I! I#", "0"),
+            ("? F I! I#", "2"),
         ]
         for icfp, expect in data:
             actual = icfp2ascii(icfp)
