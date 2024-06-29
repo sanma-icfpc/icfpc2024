@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import icfp
-
+import sys
 
 def command():
     verbose = False
-    command = input()
+    lines = []
+    for line in sys.stdin:
+        lines.append(line)
+    command = '\n'.join(lines).strip()
     response = icfp.communicate(command)
     print(response)
 
