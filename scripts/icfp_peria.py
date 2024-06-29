@@ -35,8 +35,9 @@ class Boolean(object):
     def optimize(self):
         return self, False
 
-    def evaluate(self, _k, _v):
+    def evaluate(self, _v, _s):
         return self
+
 
 class Integer(object):
     def __init__(self, value):
@@ -51,8 +52,9 @@ class Integer(object):
     def optimize(self):
         return self, False
 
-    def evaluate(self, _k, _v):
+    def evaluate(self, _v, _s):
         return self
+
 
 class String(object):
     def __init__(self, value):
@@ -67,11 +69,9 @@ class String(object):
     def optimize(self):
         return self, False
 
-    def evaluate(self, _k, _v):
+    def evaluate(self, _v, _s):
         return self
 
-    def apply(self, _k, _v):
-        return self
 
 class UnaryOperator(object):
     def __init__(self, operator, value):
@@ -110,8 +110,8 @@ class UnaryOperator(object):
         # There can be lambdas under this.
         return self, updated
 
-    def evaluate(self, key, val):
-        self.value = self.value.evaluate(key, val)
+    def evaluate(self, variables, stack):
+        self.value = self.value.evaluate(variables, stack)
         return self
 
 
@@ -122,8 +122,6 @@ class BinaryOperator(object):
         self.right = right
 
     def __str__(self):
-        if self.operator == '$':
-            return f"({self.left} => {self.right})"
         return f"({self.left} {self.operator} {self.right})"
 
     def dump(self, level):
@@ -179,14 +177,9 @@ class BinaryOperator(object):
             return String(y.value[x.value:]), True
         return self, (updatex or updatey)
 
-    def evaluate(self, key, val):
-        if self.operator == '$' and type(self.left) is Lambda:
-            k = self.left.parameter
-            v = self.right
-            return self.left.evaluate(k, v)
-
-        self.left = self.left.evaluate(key, val)
-        self.right = self.right.evaluate(key, val)
+    def evaluate(self, variables, stack):
+        self.left = self.left.evaluate(variables, stack)
+        self.right = self.right.evaluate(variables, stack)
         return self
 
 
@@ -217,10 +210,33 @@ class If(object):
                 return self.false_branch.optimize()
         return self, updatec
 
-    def evaluate(self, key, val):
-        self.condition = self.condition.evaluate(key, val)
-        self.true_branch = self.true_branch.evaluate(key, val)
-        self.false_branch = self.false_branch.evaluate(key, val)
+    def evaluate(self, variables, stack):
+        self.condition = self.condition.evaluate(variables, stack)
+        self.true_branch = self.true_branch.evaluate(variables, stack)
+        self.false_branch = self.false_branch.evaluate(variables, stack)
+        return self
+
+
+class LambdaEvaluator(BinaryOperator):
+    def __init__(self, left, right):
+        super().__init__('$', left, right)
+
+    def __str__(self):
+        return f"(lambda {self.left} : {self.right})"
+
+    def dump(self, level):
+        dump(level, "EVAL")
+        self.left.dump(level + 1)
+        dump(level, "WHERE")
+        self.right.dump(level + 1)
+
+    def evaluate(self, variables, stack):
+        self.right = self.right.evaluate(variables, stack)
+        tbr = len(stack) == 0
+        stack.append(self.right)
+        self.left = self.left.evaluate(variables, stack)
+        if tbr:
+            return self.left
         return self
 
 
@@ -242,19 +258,22 @@ class Lambda(object):
             return Lambda(self.parameter, definition), True
         return self, False
 
-    def evaluate(self, key, val):
-        self.definition = self.definition.evaluate(key, val)
-        if self.parameter == key:
-            # print("match x{} -> {}".format(key, val))
-            return self.definition
+    def evaluate(self, variables, stack):
+        key = self.parameter
+        value = stack.pop()
+        if len(stack) == 0:
+            variables = {key: value}
+            return self.definition.evaluate(variables, stack)
+        self.definition = self.definition.evaluate(variables, stack)
         return self
+
 
 class Variable(object):
     def __init__(self, parameter):
         self.parameter = parameter
 
     def __str__(self):
-        return f"v({self.parameter})"
+        return f"x{self.parameter}"
 
     def dump(self, level):
         dump(level, "x{}".format(self.parameter))
@@ -262,10 +281,10 @@ class Variable(object):
     def optimize(self):
         return self, False
 
-    def evaluate(self, key, val):
-        if self.parameter == key:
-            return val
-        return self
+    def evaluate(self, variables, _):
+        key = self.parameter
+        ret = variables.get(key, self)
+        return ret
 
 
 def dump(level, message):
@@ -275,23 +294,17 @@ def dump(level, message):
 def icfp2ascii(response):
     tokens = deque(response.split(' '))
     ast = parse(tokens)
-    # print("Input", file=sys.stderr)
-    # ast.dump(1)
-
     count = 0
     while True:
-        ast = ast.evaluate(None, None)
+        ast = ast.evaluate({}, [])
         ast, updated = ast.optimize()
-        # print("Optimized", file=sys.stderr)
-        # ast.dump(1)
-        if not updated:
+        if not updated and count > 10:
             break
         count += 1
-    # print(f"result({count}): {ast}", file=sys.stderr)
     return str(ast)
 
 
-def parse(tokens):
+def parse(tokens, stack=[]):
     token = tokens.popleft()
     indicator, body = token[0], token[1:]
     if indicator == 'T':
@@ -308,6 +321,8 @@ def parse(tokens):
     if indicator == 'B':
         left = parse(tokens)
         right = parse(tokens)
+        if body == '$':
+            return LambdaEvaluator(left, right)
         return BinaryOperator(body, left, right)
     if indicator == 'L':
         param = asc2int(body)
@@ -399,7 +414,6 @@ class TestICFP(unittest.TestCase):
             ("B$ L! B+ v! v! I#", "4"), # (v0 => v0 + v0)(2) == 4
         ]
         for icfp, expect in data:
-            print("Testing: [{}]".format(icfp), file=sys.stderr)
             actual = icfp2ascii(icfp)
 
             self.assertEqual(actual, expect)
@@ -417,7 +431,13 @@ class TestICFP(unittest.TestCase):
     def test_contest(self):
         x = 2 + 311 * 124753942619
         s = int2icfp(x)
-        print(s, "-----------------------------")
+
+class TestEnd2End(unittest.TestCase):
+    def test_language(self):
+        with open('language_test.icfp') as f:
+            icfp = f.read().strip()
+        actual = icfp2ascii(icfp)
+        self.assertEqual(actual, "Self-check OK, send `solve language_test 4w3s0m3` to claim points for it")
 
 if __name__ == '__main__':
     unittest.main()
