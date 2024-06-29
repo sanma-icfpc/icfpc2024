@@ -27,7 +27,10 @@ class Boolean(object):
     def __str__(self):
         return str(self.value)
 
-    def evaluate(self):
+    def substitute(self, parameter, value, evaluator):
+        return self
+
+    def evaluate(self, evaluator):
         return self
 
 class Integer(object):
@@ -37,7 +40,10 @@ class Integer(object):
     def __str__(self):
         return str(self.value)
 
-    def evaluate(self):
+    def substitute(self, parameter, value, evaluator):
+        return self
+
+    def evaluate(self, evaluator):
         return self
 
 class String(object):
@@ -47,8 +53,50 @@ class String(object):
     def __str__(self):
         return self.value
 
-    def evaluate(self):
+    def substitute(self, parameter, value, evaluator):
         return self
+
+    def evaluate(self, evaluator):
+        return self
+
+def is_value_term(term):
+    return isinstance(term, Boolean) or isinstance(term, Integer) or isinstance(term, String)
+
+class Evaluator(object):
+    def __init__(self, max_num_strict_evaluation=None, max_num_beta_reduction=None, max_any_step=None):
+        self.max_num_strict_evaluation = max_num_strict_evaluation
+        self.max_num_beta_reduction = max_num_beta_reduction
+        self.max_any_step = max_any_step
+        self.num_strict_evaluation = 0
+        self.num_beta_reduction = 0
+
+    def update(self, strict_evaluation, beta_reduction):
+        self.num_strict_evaluation += strict_evaluation
+        self.num_beta_reduction += beta_reduction
+    
+    def is_limit_reached(self):
+        return (
+            (self.max_num_strict_evaluation is not None and self.max_num_strict_evaluation <= self.num_strict_evaluation) or
+            (self.max_num_beta_reduction is not None and self.max_num_beta_reduction <= self.num_beta_reduction) or
+            (self.max_any_step is not None and self.max_any_step <= self.num_strict_evaluation + self.num_beta_reduction)
+        )
+
+    def __call__(self, expr):
+        if self.is_limit_reached():
+            return expr
+        val = expr.evaluate(self)
+        return val
+
+    def try_substitute(self, expr, parameter, value):
+        if isinstance(expr, LambdaUse) and expr.parameter == parameter:
+            self.update(0, 1)
+            return value
+        else:
+            expr.substitute(parameter, value, self)
+            return expr
+
+    def __repr__(self):
+        return f'<Evaluator(strict {self.num_strict_evaluation}/{self.max_num_strict_evaluation}, beta {self.num_beta_reduction}/{self.max_num_beta_reduction}, any {self.num_beta_reduction+self.num_strict_evaluation}/{self.max_any_step})'
 
 class UnaryOperator(object):
     def __init__(self, operator, value):
@@ -58,22 +106,30 @@ class UnaryOperator(object):
     def __str__(self):
         return f"{self.operator}{self.value}"
 
-    def substitute(self, parameter, value):
+    def substitute(self, parameter, value, evaluator):
         if isinstance(self.value, LambdaUse) and self.value.parameter == parameter:
             self.value = value
+            evaluator.update(0, 1)
+        else:
+            self.value.substitute(parameter, value, evaluator)
         return self
 
-    def evaluate(self):
+    def evaluate(self, evaluator):
         op = self.operator
-        val = self.value.evaluate()
-        if op == '-' and type(val) is Integer:
-            return Integer(-val.value)
-        if op == '!' and type(val) is Boolean:
-            return Boolean(not val.value)
-        if op == '#' and type(val) is String:
-            return Integer(icfp2int(val.value))
-        if op == '$' and type(val) is Integer:
-            return String(int2icfp(val.value))
+        val = evaluator(self.value)
+        if not evaluator.is_limit_reached():
+            if op == '-' and type(val) is Integer:
+                evaluator.update(1, 0)
+                return Integer(-val.value)
+            if op == '!' and type(val) is Boolean:
+                evaluator.update(1, 0)
+                return Boolean(not val.value)
+            if op == '#' and type(val) is String:
+                evaluator.update(1, 0)
+                return Integer(icfp2int(val.value))
+            if op == '$' and type(val) is Integer:
+                evaluator.update(1, 0)
+                return String(int2icfp(val.value))
         # There can be lambdas under this.
         return self
 
@@ -86,28 +142,36 @@ class BinaryOperator(object):
     def __str__(self):
         return f"({self.left} {self.operator} {self.right})"
 
-    def substitute(self, parameter, value):
-        if isinstance(self.left, LambdaUse) and self.left.parameter == parameter:
-            self.left = value
-        if isinstance(self.right, LambdaUse) and self.right.parameter == parameter:
-            self.right = value
+    def substitute(self, parameter, value, evaluator):
+        self.left = evaluator.try_substitute(self.left, parameter, value)
+        self.right = evaluator.try_substitute(self.right, parameter, value)
         return self
 
-    def evaluate(self):
+    def evaluate(self, evaluator):
         op = self.operator
-        x = self.left.evaluate()
-        y = self.right.evaluate()
+        x = evaluator(self.left)
+        self.left = x
+        if evaluator.is_limit_reached():
+            return self
+        y = evaluator(self.right)
+        self.right = y
+        if evaluator.is_limit_reached():
+            return self
         tx, ty = type(x), type(y)
         if op == '+' and tx is Integer and ty is Integer:
+            evaluator.update(1, 0)
             return Integer(x.value + y.value)
         if op == '-' and tx is Integer and ty is Integer:
+            evaluator.update(1, 0)
             return Integer(x.value - y.value)
         if op == '*' and tx is Integer and ty is Integer:
+            evaluator.update(1, 0)
             return Integer(x.value * y.value)
         if op == '/' and tx is Integer and ty is Integer:
             q = abs(x.value) // abs(y.value)
             if x.value * y.value < 0:
                 q = -q
+            evaluator.update(1, 0)
             return Integer(q)
         if op == '%' and tx is Integer and ty is Integer:
             x, y = x.value, y.value
@@ -115,34 +179,45 @@ class BinaryOperator(object):
             if x * y < 0:
                 q = -q
             r = x - q * y
+            evaluator.update(1, 0)
             return Integer(r)
         if op == '<' and tx is Integer and ty is Integer:
+            evaluator.update(1, 0)
             return Boolean(x.value < y.value)
         if op == '>' and tx is Integer and ty is Integer:
+            evaluator.update(1, 0)
             return Boolean(x.value > y.value)
         if op == '<' and tx is Integer and ty is Integer:
+            evaluator.update(1, 0)
             return Boolean(x.value < y.value)
         if op == '=' and tx is Integer and ty is Integer:
+            evaluator.update(1, 0)
             return Boolean(x.value == y.value)
         if op == '=' and tx is Boolean and ty is Boolean:
+            evaluator.update(1, 0)
             return Boolean(x.value == y.value)
         if op == '=' and tx is String and ty is String:
+            evaluator.update(1, 0)
             return Boolean(x.value == y.value)
         if op == '|' and tx is Boolean and ty is Boolean:
+            evaluator.update(1, 0)
             return Boolean(x.value or y.value)
         if op == '&' and tx is Boolean and ty is Boolean:
+            evaluator.update(1, 0)
             return Boolean(x.value and y.value)
         if op == '.' and tx is String and ty is String:
+            evaluator.update(1, 0)
             return String(x.value + y.value)
         if op == 'T' and tx is Integer and ty is String:
+            evaluator.update(1, 0)
             return String(y.value[:x.value])
         if op == 'D' and tx is Integer and ty is String:
+            evaluator.update(1, 0)
             return String(y.value[x.value:])
         if op == '$':
             assert isinstance(x, LambdaArg), f'{x} is not LambdaArg'
             x.setArgument(y)
-            return x.evaluate()
-
+            return evaluator(x)
         return self
 
 class If(object):
@@ -154,13 +229,19 @@ class If(object):
     def __str__(self):
         return f"IF {self.condition}:\nTHEN:\n{self.true_branch}\nELSE:\n{self.false_branch}"
 
-    def evaluate(self):
-        c = self.condition.evaluate()
+    def substitute(self, parameter, value, evaluator):
+        self.condition = evaluator.try_substitute(self.condition, parameter, value)
+        self.true_branch = evaluator.try_substitute(self.true_branch, parameter, value)
+        self.false_branch = evaluator.try_substitute(self.false_branch, parameter, value)
+        return self
+
+    def evaluate(self, evaluator):
+        c = evaluator(self.condition)
         if type(c) is Boolean:
             if c.value:
-                return self.true_branch.evaluate()
+                return evaluator(self.true_branch)
             else:
-                return self.false_branch.evaluate()
+                return evaluator(self.false_branch)
         return self
 
 class LambdaArg(object):
@@ -175,12 +256,16 @@ class LambdaArg(object):
     def __str__(self):
         return f"L{self.parameter}.({self.definition})"
 
-    def evaluate(self):
+    def substitute(self, parameter, value, evaluator):
+        self.definition = evaluator.try_substitute(self.definition, parameter, value)
+        return self
+
+    def evaluate(self, evaluator):
         if self.argument is None:
             # unresolved
             return self
         else:
-            return self.definition.substitute(self.parameter, self.argument).evaluate()
+            return evaluator(self.definition.substitute(self.parameter, self.argument, evaluator))
 
 class LambdaUse(object):
     def __init__(self, parameter):
@@ -189,15 +274,18 @@ class LambdaUse(object):
     def __str__(self):
         return f"v({self.parameter})"
 
-    def evaluate(self):
+    def substitute(self, parameter, value, evaluator):
         return self
 
+    def evaluate(self, evaluator):
+        return self
 
 def icfp2ascii(response):
+    limit = Evaluator()
     tokens = deque(response.split(' '))
     ast = parse(tokens)
-    ast = ast.evaluate()
-    return str(ast.evaluate())
+    ast = ast.evaluate(limit)
+    return str(ast.evaluate(limit))
 
 def parse(tokens):
     token = tokens.popleft()
@@ -320,6 +408,23 @@ class TestICFP(unittest.TestCase):
         icfp = 'B$ L# B$ L" B+ v" v" B* I$ I# v8'
         actual = icfp2ascii(icfp)
         self.assertEqual(actual, "12") # I-
+
+    def test_icfp_eval_reduction(self):
+        icfp = "B$ L! B+ v! B$ L# U- v# I$ I% "
+        tokens = deque(icfp.split(' '))
+        ast = parse(tokens)
+        i = 1
+        while True:
+            print(f'AST at step {i:3d}:')
+            print('  ' + str(ast))
+            limit = Evaluator(max_any_step=1)
+            ast = ast.evaluate(limit)
+            if is_value_term(ast):
+                break
+            i += 1
+        print('Result:')
+        print('  ' + str(ast))
+        self.assertEqual(i, 4) # U-, B$, B+, B$
 
 if __name__ == '__main__':
     unittest.main()
