@@ -35,7 +35,7 @@ class Boolean(object):
     def optimize(self):
         return self, False
 
-    def evaluate(self, _v, _s):
+    def evaluate(self, _):
         return self
 
 
@@ -52,7 +52,7 @@ class Integer(object):
     def optimize(self):
         return self, False
 
-    def evaluate(self, _v, _s):
+    def evaluate(self, _):
         return self
 
 
@@ -61,15 +61,15 @@ class String(object):
         self.value = value
 
     def __str__(self):
-        return self.value
+        return f'"{self.value}"'
 
     def dump(self, level):
-        dump(level, '"{}"'.format(str(self)))
+        dump(level, str(self))
 
     def optimize(self):
         return self, False
 
-    def evaluate(self, _v, _s):
+    def evaluate(self, _):
         return self
 
 
@@ -110,8 +110,8 @@ class UnaryOperator(object):
         # There can be lambdas under this.
         return self, updated
 
-    def evaluate(self, variables, stack):
-        self.value = self.value.evaluate(variables, stack)
+    def evaluate(self, variable):
+        self.value = self.value.evaluate(variable)
         return self
 
 
@@ -177,9 +177,9 @@ class BinaryOperator(object):
             return String(y.value[x.value:]), True
         return self, (updatex or updatey)
 
-    def evaluate(self, variables, stack):
-        self.left = self.left.evaluate(variables, stack)
-        self.right = self.right.evaluate(variables, stack)
+    def evaluate(self, variable):
+        self.left = self.left.evaluate(variable)
+        self.right = self.right.evaluate(variable)
         return self
 
 
@@ -210,10 +210,10 @@ class If(object):
                 return self.false_branch.optimize()
         return self, updatec
 
-    def evaluate(self, variables, stack):
-        self.condition = self.condition.evaluate(variables, stack)
-        self.true_branch = self.true_branch.evaluate(variables, stack)
-        self.false_branch = self.false_branch.evaluate(variables, stack)
+    def evaluate(self, variable):
+        self.condition = self.condition.evaluate(variable)
+        self.true_branch = self.true_branch.evaluate(variable)
+        self.false_branch = self.false_branch.evaluate(variable)
         return self
 
 
@@ -230,13 +230,13 @@ class LambdaEvaluator(BinaryOperator):
         dump(level, "WHERE")
         self.right.dump(level + 1)
 
-    def evaluate(self, variables, stack):
-        self.right = self.right.evaluate(variables, stack)
-        tbr = len(stack) == 0
-        stack.append(self.right)
-        self.left = self.left.evaluate(variables, stack)
-        if tbr:
-            return self.left
+    def evaluate(self, variable):
+        self.right = self.right.evaluate(variable)
+        if type(self.left) == Lambda:
+            key = self.left.parameter
+            val = self.right
+            return self.left.definition.evaluate((key, val))
+        self.left = self.left.evaluate(variable)
         return self
 
 
@@ -258,13 +258,16 @@ class Lambda(object):
             return Lambda(self.parameter, definition), True
         return self, False
 
-    def evaluate(self, variables, stack):
-        key = self.parameter
-        value = stack.pop()
-        if len(stack) == 0:
-            variables = {key: value}
-            return self.definition.evaluate(variables, stack)
-        self.definition = self.definition.evaluate(variables, stack)
+    def evaluate(self, variable):
+        if variable is None:
+            self.definition = self.definition.evaluate(variable)
+            return self
+
+        key, _ = variable
+        if key == self.parameter:
+            variable = None
+
+        self.definition = self.definition.evaluate(variable)
         return self
 
 
@@ -281,30 +284,43 @@ class Variable(object):
     def optimize(self):
         return self, False
 
-    def evaluate(self, variables, _):
-        key = self.parameter
-        ret = variables.get(key, self)
-        return ret
+    def evaluate(self, variable):
+        if variable is None:
+            return self
+        key, val = variable
+        if key == self.parameter:
+            return val
+        return self
 
 
 def dump(level, message):
-    print("  " * level + message, file=sys.stderr)
+    print("| " * level + message, file=sys.stderr)
 
 
-def icfp2ascii(response):
-    tokens = deque(response.split(' '))
+def icfp2ascii(icfp):
+    ast = compile(icfp)
+    return ast.value if type(ast) is String else str(ast)
+
+
+def compile(icfp, verbose=False):
+    tokens = deque(icfp.split(' '))
     ast = parse(tokens)
+    if verbose:
+        dump(0, "Input")
+        ast.dump(0)
+
     count = 0
     while True:
-        ast = ast.evaluate({}, [])
-        ast, updated = ast.optimize()
-        if not updated and count > 10:
+        ast, _ = ast.optimize()
+        if verbose:
+            ast.dump(0)
+        ast = ast.evaluate(None)
+        if type(ast) is String or count > 5:
             break
         count += 1
-    return str(ast)
+    return ast
 
-
-def parse(tokens, stack=[]):
+def parse(tokens):
     token = tokens.popleft()
     indicator, body = token[0], token[1:]
     if indicator == 'T':
@@ -434,10 +450,18 @@ class TestICFP(unittest.TestCase):
 
 class TestEnd2End(unittest.TestCase):
     def test_language(self):
-        with open('language_test.icfp') as f:
+        with open('scripts/test_data/language_test.icfp') as f:
             icfp = f.read().strip()
-        actual = icfp2ascii(icfp)
-        self.assertEqual(actual, "Self-check OK, send `solve language_test 4w3s0m3` to claim points for it")
+        ast = compile(icfp, verbose=False)
+        self.assertTrue(type(ast) is String, ast.dump(0))
+        self.assertEqual(ast.value, "Self-check OK, send `solve language_test 4w3s0m3` to claim points for it")
+
+    def test_lambdaman6(self):
+        with open('scripts/test_data/lambdaman6_test.icfp') as f:
+            icfp = f.read().strip()
+        ast = compile(icfp, verbose=True)
+        dump(0, "Output")
+        self.assertEqual(type(ast), String, ast.dump(0))
 
 if __name__ == '__main__':
     unittest.main()
