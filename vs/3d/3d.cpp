@@ -34,6 +34,8 @@ int HEIGHT;
 void Input(char* argv[]) {
     Board board;
     std::string line;
+    // 1行目はコマンドが書かれていると仮定する。
+    std::getline(std::cin, line);
     while (std::getline(std::cin, line)) {
         std::vector<std::string> row;
         std::string value;
@@ -407,6 +409,13 @@ bool ProcessTurn(std::string& submitted) {
             int y = time_warp_target.y;
             const auto& value = time_warp_target.value;
 
+            if (!(0 <= x && x < WIDTH && 0 <= y && HEIGHT)) {
+                std::printf(
+                    "A time warp is trying to write a value outside of the board.. x=%d y=%d value0=%s\n",
+                    x, y, value.c_str());
+                return false;
+            }
+
             if (written[y][x] && HISTORY.back()[y][x] != value) {
                 std::printf(
                     "Two different warp operators attempt to write different values into the same destination cell at the same destination time. x=%d y=%d value0=%s value1=%s\n",
@@ -445,7 +454,6 @@ bool ProcessTurn(std::string& submitted) {
 
         if (new_board[y][x] == "S") {
             submitted = value;
-            return true;
         }
 
         new_board[y][x] = value;
