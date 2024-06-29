@@ -58,6 +58,11 @@ class UnaryOperator(object):
     def __str__(self):
         return f"{self.operator}{self.value}"
 
+    def substitute(self, parameter, value):
+        if isinstance(self.value, LambdaUse) and self.value.parameter == parameter:
+            self.value = value
+        return self
+
     def evaluate(self):
         op = self.operator
         val = self.value.evaluate()
@@ -81,11 +86,24 @@ class BinaryOperator(object):
     def __str__(self):
         return f"({self.left} {self.operator} {self.right})"
 
+    def substitute(self, parameter, value):
+        if isinstance(self.left, LambdaUse) and self.left.parameter == parameter:
+            self.left = value
+        if isinstance(self.right, LambdaUse) and self.right.parameter == parameter:
+            self.right = value
+        return self
+
     def evaluate(self):
+        op = self.operator
+        if op == '$':
+            # do not evaluate left/right here.
+            assert isinstance(self.left, LambdaArg)
+            self.left.setArgument(self.right)
+            return self.left.evaluate()
+
         x = self.left.evaluate()
         y = self.right.evaluate()
         tx, ty = type(x), type(y)
-        op = self.operator
         if op == '+' and tx is Integer and ty is Integer:
             return Integer(x.value + y.value)
         if op == '-' and tx is Integer and ty is Integer:
@@ -126,9 +144,6 @@ class BinaryOperator(object):
             return String(y.value[:x.value])
         if op == 'D' and tx is Integer and ty is String:
             return String(y.value[x.value:])
-        if op == '$':
-            # TODO: Implement 'Apply'
-            return self
         return self
 
 class If(object):
@@ -149,14 +164,20 @@ class If(object):
         return self
 
 class LambdaArg(object):
-    def __init__(self, parameter):
+    def __init__(self, parameter, definition):
         self.parameter = parameter
+        self.definition = definition
+        self.argument = None
+
+    def setArgument(self, argument):
+        self.argument = argument
 
     def __str__(self):
         return f"L({self.parameter})"
 
     def evaluate(self):
-        return self
+        assert self.argument is not None
+        return self.definition.substitute(self.parameter, self.argument).evaluate()
 
 class LambdaUse(object):
     def __init__(self, parameter):
@@ -195,7 +216,8 @@ def parse(tokens):
         return BinaryOperator(body, left, right)
     if indicator == 'L':
         param = asc2int(body)
-        return LambdaArg(param)
+        definition = parse(tokens)
+        return LambdaArg(param, definition)
     if indicator == 'v':
         param = asc2int(body)
         return LambdaUse(param)
@@ -279,6 +301,7 @@ class TestICFP(unittest.TestCase):
             ("B. S4% S34", "test"),
             ("BT I$ S4%34", "tes"),
             ("BD I$ S4%34", "t"),
+            ("B$ L! B+ v! v! I#", "4"), # (v0 => v0 + v0)(2) == 4
         ]
         for icfp, expect in data:
             actual = icfp2ascii(icfp)
