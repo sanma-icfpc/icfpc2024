@@ -95,12 +95,6 @@ class BinaryOperator(object):
 
     def evaluate(self):
         op = self.operator
-        if op == '$':
-            # do not evaluate left/right here.
-            assert isinstance(self.left, LambdaArg)
-            self.left.setArgument(self.right)
-            return self.left.evaluate()
-
         x = self.left.evaluate()
         y = self.right.evaluate()
         tx, ty = type(x), type(y)
@@ -144,6 +138,11 @@ class BinaryOperator(object):
             return String(y.value[:x.value])
         if op == 'D' and tx is Integer and ty is String:
             return String(y.value[x.value:])
+        if op == '$':
+            assert isinstance(x, LambdaArg), f'{x} is not LambdaArg'
+            x.setArgument(y)
+            return x.evaluate()
+
         return self
 
 class If(object):
@@ -173,11 +172,14 @@ class LambdaArg(object):
         self.argument = argument
 
     def __str__(self):
-        return f"L({self.parameter})"
+        return f"L{self.parameter}.({self.definition})"
 
     def evaluate(self):
-        assert self.argument is not None
-        return self.definition.substitute(self.parameter, self.argument).evaluate()
+        if self.argument is None:
+            # unresolved
+            return self
+        else:
+            return self.definition.substitute(self.parameter, self.argument).evaluate()
 
 class LambdaUse(object):
     def __init__(self, parameter):
@@ -302,6 +304,9 @@ class TestICFP(unittest.TestCase):
             ("BT I$ S4%34", "tes"),
             ("BD I$ S4%34", "t"),
             ("B$ L! B+ v! v! I#", "4"), # (v0 => v0 + v0)(2) == 4
+            ("B$ L# U- v# I%", "-4"), # (v2 => - v2)(4) == -4
+            ("B$ L! B+ v! I\" I$", "4"), # (v0 => v0 + 1)(3) == 4
+            ("B$ L! B+ v! B$ L# U- v# I$ I% ", "1"), # (v0 => v0 + (v2 => - v2)))(3)(4) == 1
         ]
         for icfp, expect in data:
             actual = icfp2ascii(icfp)
@@ -311,7 +316,7 @@ class TestICFP(unittest.TestCase):
     def test_icfp_eval(self):
         icfp = 'B$ L# B$ L" B+ v" v" B* I$ I# v8'
         actual = icfp2ascii(icfp)
-        self.assertEqual(actual, "0")
+        self.assertEqual(actual, "12") # I-
 
 if __name__ == '__main__':
     unittest.main()
