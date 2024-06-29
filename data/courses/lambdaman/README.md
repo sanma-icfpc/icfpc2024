@@ -22,22 +22,22 @@ The following levels are available:
 * [lambdaman1] Your score: 33. Best score: 33.
 * [lambdaman2] Your score: 44. Best score: 44.
 * [lambdaman3] Your score: 72. Best score: 58.
-* [lambdaman4] Your score: 410. Best score: 151.
+* [lambdaman4] Your score: 394. Best score: 136.
 * [lambdaman5] Your score: 211. Best score: 142.
 * [lambdaman6] Best score: 73.
-* [lambdaman7] Your score: 465. Best score: 139.
-* [lambdaman8] Best score: 113.
+* [lambdaman7] Your score: 465. Best score: 125.
+* [lambdaman8] Your score: 4917. Best score: 113.
 * [lambdaman9] Best score: 110.
 * [lambdaman10] Best score: 143.
-* [lambdaman11] Best score: 1243.
-* [lambdaman12] Best score: 1243.
-* [lambdaman13] Best score: 1243.
-* [lambdaman14] Best score: 1242.
-* [lambdaman15] Best score: 1243.
-* [lambdaman16] Best score: 245.
-* [lambdaman17] Best score: 153.
+* [lambdaman11] Your score: 10007. Best score: 404.
+* [lambdaman12] Your score: 10011. Best score: 661.
+* [lambdaman13] Your score: 9995. Best score: 463.
+* [lambdaman14] Your score: 10013. Best score: 741.
+* [lambdaman15] Your score: 10005. Best score: 317.
+* [lambdaman16] Your score: 8209. Best score: 245.
+* [lambdaman17] Your score: 2863. Best score: 127.
 * [lambdaman18] Best score: 1060.
-* [lambdaman19] Best score: 278.
+* [lambdaman19] Your score: 16364. Best score: 278.
 * [lambdaman20] Best score: 526.
 * [lambdaman21] Best score: 723.
 
