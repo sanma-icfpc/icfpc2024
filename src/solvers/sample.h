@@ -1,10 +1,6 @@
 #pragma once
 
-#include "solver.h"
-
-class SampleSolver : public Solver {
+class SampleSolver {
  public:
   SampleSolver() = default;
-
-  Solution solve(const Problem&) override;
 };

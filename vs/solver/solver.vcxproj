@@ -19,18 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\problem.h" />
-    <ClInclude Include="..\..\src\solution.h" />
-    <ClInclude Include="..\..\src\solver.h" />
+    <ClInclude Include="..\..\src\icfp.h" />
     <ClInclude Include="..\..\src\solvers\sample.h" />
     <ClInclude Include="..\..\src\stdafx.h" />
     <ClInclude Include="..\..\src\util.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\icfp.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
-    <ClCompile Include="..\..\src\problem.cpp" />
-    <ClCompile Include="..\..\src\solution.cpp" />
-    <ClCompile Include="..\..\src\solver.cpp" />
     <ClCompile Include="..\..\src\solvers\sample.cpp" />
     <ClCompile Include="..\..\src\util.cpp" />
   </ItemGroup>
