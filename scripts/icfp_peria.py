@@ -11,15 +11,17 @@ URL_DOMAIN = "boundvariable.space"
 TOKEN = os.environ["SANMA_TOKEN"]
 HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
-def communicate(ascii_command, verbose=False):
+def communicate(ascii_command, verbose=False, translate=True):
     icfp_command = 'S' + encrypt(ascii_command)
     response = requests.post(f"https://{URL_DOMAIN}/communicate",
                             data=icfp_command,
                             headers=HEADERS)
     response = response.text
     if verbose:
-        print("ICFP response: ", response)
-    return icfp2ascii(response)
+        print("ICFP response: ", response, file=sys.stderr)
+    if translate:
+        response = icfp2ascii(response)
+    return response
 
 
 class Boolean(object):
@@ -352,7 +354,7 @@ def parse(tokens):
         t = parse(tokens)
         f = parse(tokens)
         return If(c, t, f)
-    print("Unknown indicator [{}]: {}".format(indicator, body))
+    print("Unknown indicator [{}]: {}".format(indicator, body), file=sys.stderr)
     return None
 
 

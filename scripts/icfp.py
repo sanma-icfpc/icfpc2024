@@ -3,8 +3,8 @@
 import icfp_peria
 import icfp_tsuzuki
 
-def communicate(command, verbose=False):
-    return icfp_peria.communicate(command, verbose)
+def communicate(command, verbose=False, translate=True):
+    return icfp_peria.communicate(command, verbose, translate)
     # return icfp_tsuzuki.communicate(command, verbose)
 
 if __name__ == '__main__':
