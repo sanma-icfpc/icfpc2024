@@ -28,7 +28,8 @@ program = '''
 # using
 #   v! : i or i % 4
 single_base4_decode := L! ? B= I! B% v! I% SF ? B= I" B% v! I% SL ? B= I# B% v! I% SO S>
-single_base4_decode_0to3 := L! ? B= I! v! SF ? B= I" v! SL ? B= I# v! SO S>
+single_base4_decode_0to3_switch := L! ? B= I! v! SF ? B= I" v! SL ? B= I# v! SO S>
+single_base4_decode_0to3 := L! BT I" BD v! SFLO>
 
 # decodegen = lambda f: (lambda n: (lambda i: 'LRUD'[i % 4] + ('' if n == 1 else f(n - 1)(i // 4))))
 # using
