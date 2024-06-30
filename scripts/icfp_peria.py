@@ -398,6 +398,7 @@ def compile(icfp, verbose=False):
         if verbose:
             # ast.dump(0)
             dump(0, f'{ast}\n')
+            # time.sleep(1)
         next = ast.evaluate(None).optimize()
         if next == ast:
             break
@@ -615,6 +616,11 @@ class TestEfficiency(unittest.TestCase):
     def dis_test_efficiency5(self):
         value = self.run_test('5')
         self.assertEqual(value, 2**31-1)
+
+    # It outputs 42. f(x) is minimum in 2,3,4,6,10,12,16,22,28... where f(x) > x.
+    def dis_test_efficiency6(self):
+        value = self.run_test('6')
+        self.assertEqual(value, 42)
 
 if __name__ == '__main__':
     unittest.main()
