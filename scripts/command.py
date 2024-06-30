@@ -17,7 +17,7 @@ def command():
         lines.append(line)
     command = '\n'.join(lines).strip()
     if args.communicate:
-        response = icfp.communicate(command, verbose=args.verbose , translate=args.translate)
+        response = icfp.communicate(command, verbose=args.verbose , recv_translate=args.translate)
     else:
         response = icfp.icfp2ascii(command, verbose=args.verbose)
     print(response)
