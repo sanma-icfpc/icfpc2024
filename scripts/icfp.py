@@ -4,7 +4,6 @@ import os
 import requests
 
 import icfp_peria
-import icfp_tsuzuki
 
 # https://boundvariable.space/communicate
 URL_DOMAIN = "boundvariable.space"
@@ -12,15 +11,18 @@ TOKEN = os.environ["SANMA_TOKEN"]
 HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
 
-def communicate(ascii_command, verbose=False, translate=True):
-    icfp_command = 'S' + encrypt(ascii_command)
+def communicate(ascii_command, verbose=False, send_translate=True, recv_translate=True):
+    if send_translate:
+        icfp_command = 'S' + encrypt(ascii_command)
+    else:
+        icfp_command = ascii_command
     response = requests.post(f"https://{URL_DOMAIN}/communicate",
                             data=icfp_command,
                             headers=HEADERS)
     response = response.text
     if verbose:
         print("ICFP response: ", response, file=sys.stderr)
-    if translate:
+    if recv_translate:
         response = icfp2ascii(response, verbose)
     return response
 
