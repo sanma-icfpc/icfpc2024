@@ -21,21 +21,23 @@ def find_max_run_length(path):
         i += 1
     return max_run_length
 
-def rle_encode(path):
+def rle_encode(path, run_bits=None):
     '''RRRRLLUUDDのようなpathをRLEエンコードする。方向は2ビット、ラン長さは盤面から決める固定ビット。
     (固定ビット長, ラン数, 圧縮後数値) を返す
     下位ビットがpath[0]に対応する'''
-    k = find_max_run_length(path)
-    run_bits = 1
-    while k >= 2**run_bits:
-        run_bits += 1
+    if run_bits is None:
+        max_run_length = find_max_run_length(path)
+        run_bits = 1
+        while max_run_length >= 2**run_bits:
+            run_bits += 1
+    max_possible_run_length = 2**run_bits - 1
     result = 0
     i = 0
     run_length = 0
     num_runs = 0
     path = path[::-1] + '$' # sentinel
     while i < len(path):
-        if i == 0 or path[i - 1] == path[i]:
+        if (i == 0 or path[i - 1] == path[i]) and run_length < max_possible_run_length:
             # continue
             run_length += 1
         else:
@@ -47,7 +49,23 @@ def rle_encode(path):
         i += 1
     return run_bits, num_runs, result
 
-    #result = result * (2 + run_bits) + {'L':0, 'R': 1, 'U': 2, 'D': 3}[c] + 2 * (run)
+def rle_encode_optimal(path):
+    '''最短になるようなmax_run_lengthを探す'''
+    max_run_length = find_max_run_length(path)
+    max_run_bits = 1
+    while max_run_length >= 2**max_run_bits:
+        max_run_bits += 1
+    results = []
+    for run_bits in range(2, max_run_bits + 1):
+        _, num_runs, result = rle_encode(path, run_bits=run_bits)
+        results.append((result, num_runs, run_bits))
+    results.sort() # smallest result = shortest.
+    if False:
+        for result, num_runs, run_bits in results:
+            print(f'result={result}, num_runs={num_runs}, run_bits={run_bits}, max_run_bits={max_run_bits}')
+    result, num_runs, run_bits = results[0]
+    return run_bits, num_runs, result
+
 
 def rle_decode(run_bits, num_runs, rle_int):
     '''RLE化された巨大整数rle_intをデコードしてLRUD文字列のパスを返す
@@ -194,7 +212,7 @@ def compress_lambdaman_rle(problem_num, path):
     path: RULDで構成された文字列
     returns: ICFPの式で、評価するとpathになる
     '''
-    run_bits, num_runs, encoded_int = rle_encode(path)
+    run_bits, num_runs, encoded_int = rle_encode_optimal(path)
     print(f'[RLE]ORIGINAL PATH LENGTH: {len(path)}')
     print()
     arg = 'I' + I_encode(encoded_int)
