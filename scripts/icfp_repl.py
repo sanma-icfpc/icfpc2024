@@ -3,6 +3,7 @@
 import argparse
 import colorama
 import icfp
+import icfp_peria
 
 try:
     import readline
@@ -15,6 +16,12 @@ def print_system(s, end='\n'):
 
 def S(s):
     return 'S' + icfp.encrypt(s)
+
+def trim_message(s):
+    print(f'<{s}>')
+    s = s.replace('\n\nYou scored some points for using the echo service!\n', '')
+    print(f'<{s}>')
+    return s
 
 def repl(verbose=False):
     while True:
@@ -37,25 +44,25 @@ def repl(verbose=False):
             print(icfp.decrypt(command[len('!decstr '):]))
         elif command.startswith('!encint '):
             print_system('ENCRYPTED INTERGER:')
-            print(icfp.int2icfp(command[len('!encint '):]))
+            print(icfp_peria.I_encode(command[len('!encint '):]))
         elif command.startswith('!decint '):
             print_system('DECRYPTED INTEGER:')
-            print(icfp.icfp2int(command[len('!decint '):]))
+            print(icfp_peria.I_decode(command[len('!decint '):]))
         elif command.startswith('!remB '):
             print_system('REMOTE EVAL(Boolean):')
             cmd = command[len('!remB '):]
             expr = f'B. {S("echo ")} ? {cmd} {S("true")} {S("false")}'
-            print(icfp.communicate(expr, verbose=False, send_translate=False, recv_translate=True))
+            print(trim_message(icfp.communicate(expr, verbose=False, send_translate=False, recv_translate=True)))
         elif command.startswith('!remS '):
             print_system('REMOTE EVAL(String):')
             cmd = command[len('!remS '):]
             expr = f'B. {S("echo ")} {cmd}'
-            print(icfp.communicate(expr, verbose=False, send_translate=False, recv_translate=True))
+            print(trim_message(icfp.communicate(expr, verbose=False, send_translate=False, recv_translate=True)))
         elif command.startswith('!remI '):
-            print_system('REMOTE EVAL(base94 Integer):')
+            print_system('REMOTE EVAL(Integer):')
             cmd = command[len('!remI '):]
             expr = f'B. {S("echo ")} U$ {cmd}'
-            print(icfp.communicate(expr, verbose=False, send_translate=False, recv_translate=True))
+            print(icfp_peria.icfp2int(trim_message(icfp.communicate(expr, verbose=False, send_translate=False, recv_translate=True))))
         else:
             # local evaluation
             try:
