@@ -291,12 +291,14 @@ def compile(icfp, verbose=False):
     if verbose:
         dump(0, "Input")
         ast.dump(0)
+        dump(0, "")
 
     count = 0
     while True:
         ast, _ = ast.optimize()
         if verbose:
             ast.dump(0)
+            dump(0, "")
         ast = ast.evaluate(None)
         if type(ast) is String or count > 5:
             break
