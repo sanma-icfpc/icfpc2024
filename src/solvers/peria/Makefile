@@ -26,7 +26,7 @@ LDFLAGS+=-lpthread
 #CXXFLAGS+=-DNDEBUG
 
 # add your cpp files here:
-SRCS+=lambdaman.cpp
+SRCS+=lambdaman.cpp spaceship.cpp
 OBJS=$(SRCS:%.cpp=$(BUILD_PATH)/%.o)
 DEPS=$(SRCS:%.cpp=$(BUILD_PATH)/%.d)
 
@@ -45,7 +45,7 @@ TEST_OBJS=$(TEST_SRCS:%.cpp=$(BUILD_PATH)/%.o)
 TEST_DEPS=$(TEST_SRCS:%.cpp=$(BUILD_PATH)/%.d)
 $(TEST_OBJS): CXXFLAGS+=$(TEST_CXXFLAGS)
 
-TARGETS+=lambdaman
+TARGETS+=lambdaman spaceship
 
 .PHONY: all
 all: dirs $(TARGETS)
@@ -66,5 +66,9 @@ $(BUILD_PATH)/%.o: %.cpp $(PCH_OUT)
 
 lambdaman: lambdaman.cpp
 	$(CXX) $(CXXFLAGS) -Wall $^ -o $@ $(LDFLAGS)
+
+spaceship: spaceship.cpp
+	$(CXX) $(CXXFLAGS) -Wall $^ -o $@ $(LDFLAGS)
+
 
 -include $(DEPS) $(MAIN_DEPS) $(SOLVER_DEPS)
