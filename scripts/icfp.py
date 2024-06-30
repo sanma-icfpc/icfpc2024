@@ -50,13 +50,12 @@ def reduce_extended_icfp(extended_icfp, main='main'):
         vardict[name] = value
 
     def resolve(s):
-        s = s.replace(' ( ', ' ').replace(' ) ', ' ')
         for name, value in vardict.items():
             s = re.sub(r'\$' + name + r'\b', value, s)
         return s
 
     def resolve_all(s):
-        step = resolve(s)
+        step = resolve(re.sub(r'(^| )[()]($| )', ' ', s).strip())
         if step == s:
             return step
         return resolve_all(step)
