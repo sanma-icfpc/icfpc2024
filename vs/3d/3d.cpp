@@ -188,7 +188,7 @@ bool ProcessTimeWarpOperator(const Board& board, int x, int y,
     return true;
 }
 
-bool ProcessTurn(std::string& submitted) {
+bool ProcessTurn(std::vector<std::string>& submitted) {
     const auto& board = HISTORY.back();
     std::vector<RemoveTarget> remove_targets;
     std::vector<WriteTarget> write_targets;
@@ -407,7 +407,7 @@ bool ProcessTurn(std::string& submitted) {
         }
 
         if (new_board[y][x] == "S") {
-            submitted = value;
+            submitted.push_back(value);
         }
 
         new_board[y][x] = value;
@@ -473,7 +473,7 @@ int main(int argc, char* argv[])
 
     Input(argv);
 
-    std::string submitted;
+    std::vector<std::string> submitted;
     int num_total_turns = 1;
     while (submitted.empty()) {
         std::printf("num_total_turns=%d t=%d\n", num_total_turns, static_cast<int>(HISTORY.size()));
@@ -501,5 +501,11 @@ int main(int argc, char* argv[])
         ++num_total_turns;
     }
 
-    std::printf(submitted.c_str());
+    for (const auto& s : submitted) {
+        if (submitted.front() != s) {
+            std::printf("It is an error to submit multiple different values.\n");
+        }
+    }
+
+    std::printf(submitted.front().c_str());
 }
