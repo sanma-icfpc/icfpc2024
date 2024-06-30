@@ -18,9 +18,7 @@ def S(s):
     return 'S' + icfp.encrypt(s)
 
 def trim_message(s):
-    print(f'<{s}>')
     s = s.replace('\n\nYou scored some points for using the echo service!\n', '')
-    print(f'<{s}>')
     return s
 
 def repl(verbose=False):
