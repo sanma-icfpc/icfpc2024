@@ -6,6 +6,7 @@ https://github.com/fillipe-gsm/python-tsp
 import numpy as np
 from typing import List, Tuple, Dict
 
+
 action_dict = {
     (1, 0): "R",
     (-1, 0): "L",
@@ -18,6 +19,9 @@ class Board:
         self.board = board
         self.y_size = len(board)
         self.x_size = len(board[0])
+        for i in range(self.y_size):
+            if len(board[i]) != self.x_size:
+                raise ValueError("Invalid Board")
         self.pills = []
         self.visited_pills = []
         self.walls = []
@@ -32,6 +36,40 @@ class Board:
                 
     def finish(self) -> bool:
         return len(self.pills) == 0
+
+    def get_distance(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> int:
+        """
+        ダイクストラ法でabの距離と経路を返す
+        """
+        def get_adjacent(pos: Tuple[int, int]) -> List[Tuple[int, int]]:
+            x, y = pos
+            return [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        
+        def is_valid_pos(pos: Tuple[int, int]) -> bool:
+            x, y = pos
+            if x < 0 or x >= self.x_size or y < 0 or y >= self.y_size:
+                return False
+            if pos in self.walls:
+                return False
+            return True
+        
+        path_dict:Dict[Tuple[int, int], List[int]] = {}
+        path_dict[pos1] = []
+        queue = [pos1]
+        while queue:
+            x, y = queue.pop(0)
+            for dx, dy in get_adjacent((x, y)):
+                x_check = x + dx
+                y_check = y + dy
+                if not is_valid_pos((x_check, y_check)):
+                    continue
+                if (x_check, y_check) in path_dict:
+                    continue
+                path_dict[(x_check, y_check)] = path_dict[(x, y)] + [(dx, dy)]
+                if (x_check, y_check) == pos2:
+                    return (x_check, y_check), path_dict[(x_check, y_check)]
+                queue.append((x_check, y_check))
+        raise ValueError("Invalid Position")
 
     def find_nearest_pill(self, pos: Tuple[int, int]) -> Tuple[Tuple[int, int], List[int]]:
         """
@@ -66,6 +104,7 @@ class Board:
                     return (x_check, y_check), path_dict[(x_check, y_check)]
                 queue.append((x_check, y_check))
 
+
     def print_board(self) -> None:
         for i in range(self.y_size):
             row = ""
@@ -92,7 +131,12 @@ class Board:
 
 
 if __name__ == "__main__":
-    board_str = open("data/lambdaman/problems/lambdaman6.md", "r").read().strip().split("\n")
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n", type=int, default=1)
+    args = parser.parse_args()
+
+    board_str = open(f"data/courses/lambdaman/problems/lambdaman{args.n}.txt", "r").read().strip().split("\n")
     board = Board(board_str)
     # board.print_board()
     out = ""
@@ -102,4 +146,8 @@ if __name__ == "__main__":
         print(path[1], len(board.pills))
         out += "".join([action_dict[p] for p in path[1]])
         # board.print_board()
+    board.print_board()
     print(out)
+    with open(f"lambdaman_sln_{args.n}.txt", "w") as f:
+        f.write(out)
+
