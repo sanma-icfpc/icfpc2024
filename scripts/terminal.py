@@ -10,8 +10,10 @@ def terminal(send_raw_icpc):
     prompt = 'raw> ' if send_raw_icpc else 'ascii> '
     while True:
         print(colorama.Back.BLUE + colorama.Fore.WHITE + prompt, end="")
-        command = input()
-        print(colorama.Style.RESET_ALL, end="")
+        try:
+            command = input()
+        finally:
+            print(colorama.Style.RESET_ALL, end="")
         response = icfp.communicate(command, verbose, send_translate=not send_raw_icpc)
         print(response)
 
