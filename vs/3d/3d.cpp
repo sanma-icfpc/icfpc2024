@@ -19,8 +19,10 @@ struct RemoveTarget {
 };
 
 struct TimeWarpTarget {
-    int x;
-    int y;
+    int source_x;
+    int source_y;
+    int destination_x;
+    int destination_y;
     std::string value;
     int turn;
 };
@@ -183,7 +185,7 @@ bool ProcessTimeWarpOperator(const Board& board, int x, int y,
     }
 
     time_warp_targets.emplace_back(TimeWarpTarget{
-        x - static_cast<int>(left), y - static_cast<int>(right), board[y - 1][x],
+        x, y, x - static_cast<int>(left), y - static_cast<int>(right), board[y - 1][x],
         static_cast<int>(down) });
     return true;
 }
@@ -419,11 +421,14 @@ bool ProcessTurn(std::vector<std::string>& submitted) {
         for (const auto& time_warp_target : time_warp_targets) {
             if (time_warp_target.turn != time_warp_targets.front().turn) {
                 std::printf(
-                    "Two different warp operators attempt to travel to different times in the same tick. x0=%d y0=%d value0=%s x1=%d y1=%d value1=%s\n",
-                    time_warp_target.x, time_warp_target.y,
-                    board[time_warp_target.y][time_warp_target.x].c_str(),
-                    time_warp_targets.front().x, time_warp_targets.front().y,
-                    board[time_warp_targets.front().y][time_warp_targets.front().x].c_str());
+                    "Two different warp operators attempt to travel to different times in the same tick. "
+                    "source_x0=%d source_y0=%d destination_x0=%d destination_y0=%d value0=%s source_x1=%d source_y1=%d destination_x1=%d destination_y1=%d value1=%s\n",
+                    time_warp_target.source_x, time_warp_target.source_y,
+                    time_warp_target.destination_x, time_warp_target.destination_y,
+                    board[time_warp_target.source_y - 1][time_warp_target.source_x].c_str(),
+                    time_warp_targets.front().source_x, time_warp_targets.front().source_y,
+                    time_warp_targets.front().destination_x, time_warp_targets.front().destination_y,
+                    board[time_warp_targets.front().source_y - 1][time_warp_targets.front().source_y].c_str());
                 return false;
             }
         }
@@ -434,26 +439,31 @@ bool ProcessTurn(std::vector<std::string>& submitted) {
         // タイムワープ値を書き込む。
         std::vector<std::vector<bool>> written(HEIGHT, std::vector<bool>(WIDTH));
         for (const auto& time_warp_target : time_warp_targets) {
-            int x = time_warp_target.x;
-            int y = time_warp_target.y;
+            int source_x = time_warp_target.source_x;
+            int source_y = time_warp_target.source_y;
+            int destination_x = time_warp_target.destination_x;
+            int destination_y = time_warp_target.destination_y;
             const auto& value = time_warp_target.value;
 
-            if (!(0 <= x && x < WIDTH && 0 <= y && HEIGHT)) {
+            if (!(0 <= destination_x && destination_x < WIDTH && 0 <= destination_y && destination_y < HEIGHT)) {
                 std::printf(
-                    "A time warp is trying to write a value outside of the board.. x=%d y=%d value0=%s\n",
-                    x, y, value.c_str());
+                    "A time warp is trying to write a value outside of the board. "
+                    "source_x=%d source_y=%d destination_x=%d destination_y=%d value=%s\n",
+                    source_x, source_y, destination_x, destination_y, value.c_str());
                 return false;
             }
 
-            if (written[y][x] && HISTORY.back()[y][x] != value) {
+            if (written[destination_y][destination_x] && HISTORY.back()[destination_y][destination_x] != value) {
                 std::printf(
-                    "Two different warp operators attempt to write different values into the same destination cell at the same destination time. x=%d y=%d value0=%s value1=%s\n",
-                    x, y, HISTORY.back()[y][x].c_str(), value.c_str());
+                    "Two different warp operators attempt to write different values into the same destination cell at the same destination time. "
+                    "source_x=%d source_y=%d destination_x=%d destination_y=%d value0=%s value1=%s\n",
+                    source_x, source_y, destination_x, destination_y,
+                    HISTORY.back()[destination_y][destination_x].c_str(), value.c_str());
                 return false;
             }
 
-            HISTORY.back()[y][x] = value;
-            written[y][x] = true;
+            HISTORY.back()[destination_y][destination_x] = value;
+            written[destination_y][destination_x] = true;
         }
 
         return true;
@@ -464,7 +474,7 @@ bool ProcessTurn(std::vector<std::string>& submitted) {
     return true;
 }
 
-int main(int argc, char* argv[])
+int main3d(int argc, char* argv[])
 {
     if (argc != 3) {
         std::printf("Usage: 3d (A) (B)\n");
