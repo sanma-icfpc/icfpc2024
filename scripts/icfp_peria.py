@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import deque
-import os
+from pathlib import Path
 import sys
 import unittest
 
@@ -415,38 +415,63 @@ class TestICFP(unittest.TestCase):
             ("B$ L! B+ v! v! I#", "4"), # (v0 => v0 + v0)(2) == 4
         ]
         for icfp, expect in data:
-            actual = translate(icfp)
+            actual = icfp2ascii(icfp)
 
             self.assertEqual(actual, expect)
 
     def test_lambda(self):
         icfp = 'B$ B$ L# L$ v# B. SB%,,/ S}Q/2,$_ IK'
-        actual = translate(icfp)
+        actual = icfp2ascii(icfp)
         self.assertEqual(actual, "Hello World!")
 
     def test_icfp_eval(self):
         icfp = 'B$ L# B$ L" B+ v" v" B* I$ I# v8'
-        actual = translate(icfp)
+        actual = icfp2ascii(icfp)
         self.assertEqual(actual, "12")
+
+    def test_simple_language_test(self):
+        icfp = 'B$ B$ B$ B$ L$ L$ L$ L# v$ I" I# I$ I%'
+        actual = icfp2ascii(icfp)
+        self.assertEqual(actual, "3")
 
     def test_contest(self):
         x = 2 + 311 * 124753942619
         s = int2icfp(x)
 
 class TestEnd2End(unittest.TestCase):
+    SCRIPT_DIR = Path(__file__).parent
+    TEST_DATA_DIR = SCRIPT_DIR / 'test_data'
+
     def test_language(self):
-        with open('scripts/test_data/language_test.icfp') as f:
+        with open(self.TEST_DATA_DIR / 'language_test.icfp') as f:
             icfp = f.read().strip()
-        ast = compile(icfp, verbose=False)
-        self.assertTrue(type(ast) is String, ast.dump(0))
+        ast = compile(icfp)
+        self.assertTrue(type(ast) is String)
         self.assertEqual(ast.value, "Self-check OK, send `solve language_test 4w3s0m3` to claim points for it")
 
     def test_lambdaman6(self):
-        with open('scripts/test_data/lambdaman6_test.icfp') as f:
+        with open(self.TEST_DATA_DIR / 'lambdaman6_test.icfp') as f:
             icfp = f.read().strip()
-        ast = compile(icfp, verbose=True)
-        dump(0, "Output")
-        self.assertEqual(type(ast), String, ast.dump(0))
+        ast = compile(icfp)
+        self.assertEqual(type(ast), String)
+
+
+class TestEfficiency(unittest.TestCase):
+    SCRIPT_DIR = Path(__file__).parent
+    ROOT_DIR = SCRIPT_DIR.parent
+    PROBLEMS_DIR = ROOT_DIR / 'data' / 'courses' / 'efficiency' / 'problems'
+
+    def run_test(self, id, verbose=False):
+        filename = f'efficiency{id}.icfp'
+        with open(self.PROBLEMS_DIR / filename) as f:
+            icfp = f.read().strip()
+        ast = compile(icfp, verbose)
+        self.assertEqual(type(ast), Integer)
+        return ast.value
+
+    def test_efficiency1(self):
+        value = self.run_test('1', verbose=True)
+        self.assertEqual(value, 4**22)
 
 if __name__ == '__main__':
     unittest.main()
