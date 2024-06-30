@@ -23,6 +23,52 @@ def base4_decode(base4_str):
         result = result * 4 + {'L':0, 'R': 1, 'U': 2, 'D': 3}[c]
     return result
 
+program = '''
+# 'LRUD'[i % 4]
+# using
+#   v! : i or i % 4
+single_base4_decode := L! ? B= I! B% v! I% SF ? B= I" B% v! I% SL ? B= I# B% v! I% SO S>
+single_base4_decode_0to3 := L! ? B= I! v! SF ? B= I" v! SL ? B= I# v! SO S>
+
+# using
+#   v# -> f
+#   v$ -> n
+#   v% -> i
+decodegen := L# L$ L% B. ( $single_base4_decode_0to3 B% v% I% ) ( ? B= v$ I" ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% )
+
+# using
+#  vc -> f
+#  vd -> n
+factgen := Lc Ld ? B= I! vd I" B* vd B$ vc B- vd I"
+
+# 常に停止する再帰
+stopgen := Lc Ld I"
+
+# Y combinator
+Y := B$ ( Lf ( Lx B$ vf B$ vx vx ) ) ( Lx B$ vf B$ vx vx ) 
+
+# Z = lambda f: (lambda x: f (lambda y: x(x)(y))) (lambda x: f (lambda y: x(x)(y)))
+# def Z(f):
+#     def Zx(x):
+#         def Zy(y):
+#             return x(x)(y)
+#         return f(Zy)
+#     return Zx(Zx)
+# using
+#   vf
+#   vx
+#   vy
+#   va
+#   vb
+Z := Lf B$ ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) ) ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) ) 
+
+# 何もしない
+main := B$ $Z $decodegen
+factorial := B$ $Z $factgen
+#main := $Y $factgen
+#main := $Z $stopgen
+'''
+
 def compress_lambdaman_base4(problem_num, path):
     '''lambdamanの回答であるpath(RRRUUDLD..みたいなやつ)に評価されるような短いICFPを生成する
     path: RULDで構成された文字列
@@ -41,31 +87,10 @@ def compress_lambdaman_base4(problem_num, path):
         print(arg.count('\n'))
         print()
         preamble = encrypt(f'solve lambdaman{problem_num} ')
-        program = '''
-        # 'LRUD'[i % 4]
-        # using
-        #   v! : i or i % 4
-        single_base4_decode := L! ? B= I! B% v! I% SF ? B= I" B% v! I% SL ? B= I# B% v! I% SO S>
-        single_base4_decode_0to3 := L! ? B= I! v! SF ? B= I" v! SL ? B= I# v! SO S>
-
-        # using
-        #   v# -> f
-        #   v$ -> n
-        #   v% -> i
-        decodegen := L# L$ L% B. ( $single_base4_decode_0to3 B% v% I% ) ( ? B= v$ I" ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% )
-
-        #
-        factgen := La Lb ? B= 0 vb 1 B* vb B$ va B- vb I"
-
-        # Z = lambda f: (lambda x: f (lambda y: x(x)(y)))(lambda x: f (lambda y: x(x)(y)))
-        # using
-        #   vf
-        #   vx
-        #   vy
-        Z := Lf Lx B$ vf Ly B$ B$ vx vx vy Lx B$ vf Ly B$ B$ vx vx vy
-        main := $Z $decodegen
-        '''
-        func = reduce_extended_icfp(program)
+        func = reduce_extended_icfp(program, 'factorial')
+        print('FACTORIAL 5:')
+        print(f'B$ {func} I&')
+        print()
         result = f'B. S{preamble} B$ {func} {arg}'
     print(f'COMPRESSED({len(result)}):', result)
     #print('EVALUATE:', icfp2ascii(result))
@@ -98,35 +123,20 @@ class TestICFPCompression(unittest.TestCase):
         self.assertEqual(encrypt('LRUD'), 'FLO>')
 
     def test_icfp_decodegen(self):
-        program = '''
-        # 'LRUD'[i % 4]
-        # using
-        #   v! : i or i % 4
-        single_base4_decode := L! ? B= I! B% v! I% SF ? B= I" B% v! I% SL ? B= I# B% v! I% SO S>
-        single_base4_decode_0to3 := L! ? B= I! v! SF ? B= I" v! SL ? B= I# v! SO S>
-
-        # using
-        #   v# -> f
-        #   v$ -> n
-        #   v% -> i
-        decodegen := L# L$ L% B. ( $single_base4_decode_0to3 B% v" I% ) ( ? B= v$ I" ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% )
-
-        # Z = lambda f: (lambda x: f (lambda y: x(x)(y)))(lambda x: f (lambda y: x(x)(y)))
-        # using
-        #   vf
-        #   vx
-        #   vy
-        Z := Lf Lx B$ vf Ly B$ B$ vx vx vy Lx B$ vf Ly B$ B$ vx vx vy
-        decode := $Z $decodegen
-        main := B$ $decode IcO
-        '''
         program_icfp = reduce_extended_icfp(program)
-        icfp2ascii(program_icfp)
+        #icfp2ascii(program_icfp)
 
 
     def test_base4_python_lambda(self):
         '''PythonでZコンビネータを使ってbase4 decode'''
-        Z = lambda f: (lambda x: f (lambda y: x(x)(y)))(lambda x: f (lambda y: x(x)(y)))
+        #Z = lambda f: (lambda x: f (lambda y: x(x)(y)))(lambda x: f (lambda y: x(x)(y)))
+        def Z(f):
+            def Zx(x):
+                def Zy(y):
+                    return x(x)(y)
+                return f(Zy)
+            return Zx(Zx)
+
         decodegen = lambda f: (lambda n: (lambda i: 'LRUD'[i % 4] + ('' if n == 1 else f(n - 1)(i // 4))))
         decode = Z(decodegen)
 

@@ -60,7 +60,10 @@ def repl(verbose=False):
             print_system('REMOTE EVAL(Integer):')
             cmd = command[len('!remI '):]
             expr = f'B. {S("echo ")} U$ {cmd}'
-            print(icfp_peria.icfp2int(trim_message(icfp.communicate(expr, verbose=False, send_translate=False, recv_translate=True))))
+            print(expr)
+            msg = icfp.communicate(expr, verbose=False, send_translate=False, recv_translate=True)
+            print(msg)
+            print(icfp_peria.icfp2int(trim_message(msg)))
         else:
             # local evaluation
             try:
