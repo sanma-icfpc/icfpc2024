@@ -1,6 +1,6 @@
 import unittest
 from icfp import icfp2ascii, reduce_extended_icfp
-from icfp_peria import encrypt, int2icfp
+from icfp_peria import encrypt, I_encode
 
 def base4_encode(n_chars, path_int):
     '''L:0, R:1, U:2, D:3 のアルファベットのBASE4でpath_intをエンコードする'''
@@ -23,13 +23,6 @@ def base4_decode(base4_str):
         result = result * 4 + {'L':0, 'R': 1, 'U': 2, 'D': 3}[c]
     return result
 
-def my_int2icfp(i):
-    result = []
-    while i > 0:
-        result.append(chr(i % 94 + 33))
-        i //= 94
-    return ''.join(reversed(result))
-
 def compress_lambdaman_base4(problem_num, path):
     '''lambdamanの回答であるpath(RRRUUDLD..みたいなやつ)に評価されるような短いICFPを生成する
     path: RULDで構成された文字列
@@ -42,7 +35,7 @@ def compress_lambdaman_base4(problem_num, path):
         encoded_int = base4_decode(path)
         print(f'ORIGINAL PATH LENGTH: {len(path)}')
         print()
-        arg = 'I' + my_int2icfp(encoded_int)
+        arg = 'I' + I_encode(encoded_int)
         print(f'ENCODED PATH(LENGTH={len(arg)}): {arg}')
         print()
         print(arg.count('\n'))
@@ -59,7 +52,10 @@ def compress_lambdaman_base4(problem_num, path):
         #   v# -> f
         #   v$ -> n
         #   v% -> i
-        decodegen := L# L$ L% B. ( $single_base4_decode_0to3 B% v" I% ) ( ? B= v$ I" ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% )
+        decodegen := L# L$ L% B. ( $single_base4_decode_0to3 B% v% I% ) ( ? B= v$ I" ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% )
+
+        #
+        factgen := La Lb ? B= 0 vb 1 B* vb B$ va B- vb I"
 
         # Z = lambda f: (lambda x: f (lambda y: x(x)(y)))(lambda x: f (lambda y: x(x)(y)))
         # using

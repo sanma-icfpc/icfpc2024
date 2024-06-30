@@ -371,12 +371,30 @@ def encrypt(s):
     return ''.join(chr(crypt_map[c] + 33) for c in s)
 
 def icfp2int(icfp):
+    global crypt_map
+    if len(crypt_map) == 0:
+        for i in range(len(mapping)):
+            crypt_map[mapping[i]] = i
+
+    value = 0
+    for c in icfp:
+        value = value * 94 + crypt_map[c]
+    return value
+
+def int2icfp(value):
+    result = []
+    while value > 0:
+        result.append(mapping[value % 94])
+        value //= 94
+    return ''.join(reversed(result))
+
+def I_decode(icfp):
     value = 0
     for c in icfp:
         value = value * 94 + ord(c) - 33
     return value
 
-def int2icfp(value):
+def I_encode(value):
     result = []
     while True:
         result.append(chr(value % 94 + 33))
@@ -385,11 +403,11 @@ def int2icfp(value):
     return ''.join(reversed(result))
 
 class TestICFP(unittest.TestCase):
-    def test_icfp2int(self):
-        self.assertEqual(icfp2int('!'), 0)
-        self.assertEqual(icfp2int('/6'), 1337) # from the rules
-        self.assertEqual(int2icfp(0), '!')
-        self.assertEqual(int2icfp(1337), '/6')
+    def test_I_code(self):
+        self.assertEqual(I_decode('!'), 0)
+        self.assertEqual(I_decode('/6'), 1337) # from the rules
+        self.assertEqual(I_encode(0), '!')
+        self.assertEqual(I_encode(1337), '/6')
 
     def test_icfp2ascii(self):
         data = [
