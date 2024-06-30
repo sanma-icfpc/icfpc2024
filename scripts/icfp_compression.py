@@ -36,7 +36,8 @@ single_base4_decode_0to3 := L! BT I" BD v! SFLO>
 #   v# -> f
 #   v$ -> n
 #   v% -> i
-decodegen := L# ( L$ ( L% B. ( B$ $single_base4_decode_0to3 B% v% I% ) ( ? ( B= v$ I" ) ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% ) ) )
+#decodegen := L# ( L$ ( L% B. ( B$ $single_base4_decode_0to3 B% v% I% ) ( ? ( B= v$ I" ) ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% ) ) )
+decodegen := L# ( L$ ( L% B. ( BT I" BD B% v% I% SFLO> ) ( ? ( B= v$ I" ) ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% ) ) )
 
 # using
 #  vc -> f
