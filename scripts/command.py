@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 
-import icfp
+import argparse
 import sys
+import icfp
 
 def command():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--download', action='store_false', dest='translate', help='Do not translate ICFP to human readable text.')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Print verbose output.')
+    args = parser.parse_args()
+
     verbose = False
     lines = []
     for line in sys.stdin:
         lines.append(line)
     command = '\n'.join(lines).strip()
-    response = icfp.communicate(command)
+    response = icfp.communicate(command, verbose=args.verbose , translate=args.translate)
     print(response)
 
 
