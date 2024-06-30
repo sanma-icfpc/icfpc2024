@@ -487,7 +487,13 @@ int main(int argc, char* argv[])
                 if (x) {
                     std::printf(" ");
                 }
-                std::printf(row[x].c_str());
+
+                if (row[x] == "%") {
+                    std::printf("%%");
+                }
+                else {
+                    std::printf(row[x].c_str());
+                }
             }
             std::printf("\n");
         }
