@@ -2,26 +2,12 @@
 
 from collections import deque
 import os
-import requests
 import sys
 import unittest
 
-# https://boundvariable.space/communicate
-URL_DOMAIN = "boundvariable.space"
-TOKEN = os.environ["SANMA_TOKEN"]
-HEADERS = {"Authorization": f"Bearer {TOKEN}"}
-
-def communicate(ascii_command, verbose=False, translate=True):
-    icfp_command = 'S' + encrypt(ascii_command)
-    response = requests.post(f"https://{URL_DOMAIN}/communicate",
-                            data=icfp_command,
-                            headers=HEADERS)
-    response = response.text
-    if verbose:
-        print("ICFP response: ", response, file=sys.stderr)
-    if translate:
-        response = icfp2ascii(response)
-    return response
+def icfp2ascii(icfp, verbose=False):
+    ast = compile(icfp, verbose)
+    return ast.value if type(ast) is String else str(ast)
 
 
 class Boolean(object):
@@ -299,11 +285,6 @@ def dump(level, message):
     print("| " * level + message, file=sys.stderr)
 
 
-def icfp2ascii(icfp):
-    ast = compile(icfp)
-    return ast.value if type(ast) is String else str(ast)
-
-
 def compile(icfp, verbose=False):
     tokens = deque(icfp.split(' '))
     ast = parse(tokens)
@@ -432,18 +413,18 @@ class TestICFP(unittest.TestCase):
             ("B$ L! B+ v! v! I#", "4"), # (v0 => v0 + v0)(2) == 4
         ]
         for icfp, expect in data:
-            actual = icfp2ascii(icfp)
+            actual = translate(icfp)
 
             self.assertEqual(actual, expect)
 
     def test_lambda(self):
         icfp = 'B$ B$ L# L$ v# B. SB%,,/ S}Q/2,$_ IK'
-        actual = icfp2ascii(icfp)
+        actual = translate(icfp)
         self.assertEqual(actual, "Hello World!")
 
     def test_icfp_eval(self):
         icfp = 'B$ L# B$ L" B+ v" v" B* I$ I# v8'
-        actual = icfp2ascii(icfp)
+        actual = translate(icfp)
         self.assertEqual(actual, "12")
 
     def test_contest(self):
