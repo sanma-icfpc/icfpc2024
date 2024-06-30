@@ -36,11 +36,12 @@ def reduce_extended_icfp(extended_icfp):
     myfunc := L! U- v!
     main := B$ $myfunc I#
     みたいなのを入力として、B$ L! U- v! I# を出力する
+    両脇にスペースのある()は消す
     '''
     vardict = {}
     for line in extended_icfp.splitlines():
         line = line.strip()
-        if len(line) == 0:
+        if len(line) == 0 or line[0] == '#':
             continue
         mo = re.match(r'^\s*([a-zA-Z0-9_]+)\s*:=\s*(.*)$', line)
         if mo is None:
@@ -49,6 +50,7 @@ def reduce_extended_icfp(extended_icfp):
         vardict[name] = value
 
     def resolve(s):
+        s = s.replace(' ( ', ' ').replace(' ) ', ' ')
         for name, value in vardict.items():
             s = re.sub(r'\$' + name + r'\b', value, s)
         return s
