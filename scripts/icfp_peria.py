@@ -2,7 +2,9 @@
 
 from collections import deque
 from pathlib import Path
+import copy
 import sys
+import time
 import unittest
 
 def icfp2ascii(icfp, verbose=False):
@@ -21,9 +23,12 @@ class Boolean(object):
         dump(level, str(self))
 
     def optimize(self):
-        return self, False
+        return self
 
     def evaluate(self, _):
+        return self
+
+    def apply(self, _k, _v):
         return self
 
 
@@ -38,9 +43,12 @@ class Integer(object):
         dump(level, str(self))
 
     def optimize(self):
-        return self, False
+        return self
 
     def evaluate(self, _):
+        return self
+
+    def apply(self, _k, _v):
         return self
 
 
@@ -55,11 +63,13 @@ class String(object):
         dump(level, str(self))
 
     def optimize(self):
-        return self, False
+        return self
 
     def evaluate(self, _):
         return self
 
+    def apply(self, _k, _v):
+        return self
 
 class UnaryOperator(object):
     def __init__(self, operator, value):
@@ -86,20 +96,28 @@ class UnaryOperator(object):
 
     def optimize(self):
         op = self.operator
-        val, updated = self.value.optimize()
+        val = self.value.optimize()
         if op == '-' and type(val) is Integer:
-            return Integer(-val.value), True
+            return Integer(-val.value)
         if op == '!' and type(val) is Boolean:
-            return Boolean(not val.value), True
+            return Boolean(not val.value)
         if op == '#' and type(val) is String:
-            return Integer(icfp2int(val.value)), True
+            return Integer(icfp2int(val.value))
         if op == '$' and type(val) is Integer:
-            return String(int2icfp(val.value)), True
-        # There can be lambdas under this.
-        return self, updated
+            return String(int2icfp(val.value))
+        # There can be lambdas under this node.
+        return self
 
-    def evaluate(self, variable):
-        self.value = self.value.evaluate(variable)
+    def evaluate(self, values):
+        value = self.value.evaluate(values).optimize()
+        if value != self.value:
+            return UnaryOperator(self.operator, value)
+        return self
+
+    def apply(self, k, v):
+        value = self.value.apply(k, v).optimize()
+        if value != self.value:
+            return UnaryOperator(self.operator, value)
         return self
 
 
@@ -120,54 +138,98 @@ class BinaryOperator(object):
 
     def optimize(self):
         op = self.operator
-        x, updatex = self.left.optimize()
-        y, updatey = self.right.optimize()
+        x = self.left.optimize()
+        y = self.right.optimize()
         tx, ty = type(x), type(y)
-        if op == '+' and tx is Integer and ty is Integer:
-            return Integer(x.value + y.value), True
-        if op == '-' and tx is Integer and ty is Integer:
-            return Integer(x.value - y.value), True
-        if op == '*' and tx is Integer and ty is Integer:
-            return Integer(x.value * y.value), True
-        if op == '/' and tx is Integer and ty is Integer:
-            q = abs(x.value) // abs(y.value)
-            if x.value * y.value < 0:
-                q = -q
-            return Integer(q), True
-        if op == '%' and tx is Integer and ty is Integer:
-            x, y = x.value, y.value
-            q = abs(x) // abs(y)
-            if x * y < 0:
-                q = -q
-            r = x - q * y
-            return Integer(r), True
+        if op == '+':
+            if tx is Integer and x.value == 0:
+                return y
+            if ty is Integer and y.value == 0:
+                return x
+            if tx is Integer and ty is Integer:
+                return Integer(x.value + y.value)
+        if op == '-':
+            if ty is Integer and y.value == 0:
+                return x
+            if tx is Integer and ty is Integer:
+                return Integer(x.value - y.value)
+        if op == '*':
+            if tx is Integer:
+                if x.value == 0:
+                    return Integer(0)
+                if x.value == 1:
+                    return y
+            if ty is Integer:
+                if y.value == 0:
+                    return Integer(0)
+                if y.value == 1:
+                    return x
+            if tx is Integer and ty is Integer:
+                return Integer(x.value * y.value)
+        if op == '/':
+            if tx is Integer and x.value == 0:
+                return Integer(0)
+            if ty is Integer and y.value == 1:
+                return x
+            if tx is Integer and ty is Integer:
+                q = abs(x.value) // abs(y.value)
+                if x.value * y.value < 0:
+                    q = -q
+                return Integer(q)
+        if op == '%':
+            if tx is Integer and x.value == 0:
+                return Integer(0)
+            if tx is Integer and ty is Integer:
+                x, y = x.value, y.value
+                q = abs(x) // abs(y)
+                if x * y < 0:
+                    q = -q
+                r = x - q * y
+                return Integer(r)
         if op == '<' and tx is Integer and ty is Integer:
-            return Boolean(x.value < y.value), True
+            return Boolean(x.value < y.value)
         if op == '>' and tx is Integer and ty is Integer:
-            return Boolean(x.value > y.value), True
-        if op == '<' and tx is Integer and ty is Integer:
-            return Boolean(x.value < y.value), True
-        if op == '=' and tx is Integer and ty is Integer:
-            return Boolean(x.value == y.value), True
-        if op == '=' and tx is Boolean and ty is Boolean:
-            return Boolean(x.value == y.value), True
-        if op == '=' and tx is String and ty is String:
-            return Boolean(x.value == y.value), True
-        if op == '|' and tx is Boolean and ty is Boolean:
-            return Boolean(x.value or y.value), True
-        if op == '&' and tx is Boolean and ty is Boolean:
-            return Boolean(x.value and y.value), True
+            return Boolean(x.value > y.value)
+        if op == '=':
+            if tx == ty and tx in (Integer, Boolean, String):
+                return Boolean(x.value == y.value)
+        if op == '|':
+            if tx is Boolean and x.value:
+                return Boolean(True)
+            if ty is Boolean and y.value:
+                return Boolean(True)
+            if tx is Boolean and ty is Boolean:
+                return Boolean(x.value or y.value)
+        if op == '&':
+            if tx is Boolean and not x.value:
+                return Boolean(False)
+            if ty is Boolean and not y.value:
+                return Boolean(False)
+            if tx is Boolean and ty is Boolean:
+                return Boolean(x.value and y.value)
         if op == '.' and tx is String and ty is String:
-            return String(x.value + y.value), True
+            return String(x.value + y.value)
         if op == 'T' and tx is Integer and ty is String:
-            return String(y.value[:x.value]), True
+            return String(y.value[:x.value])
         if op == 'D' and tx is Integer and ty is String:
-            return String(y.value[x.value:]), True
-        return self, (updatex or updatey)
+            return String(y.value[x.value:])
 
-    def evaluate(self, variable):
-        self.left = self.left.evaluate(variable)
-        self.right = self.right.evaluate(variable)
+        if x != self.left or y != self.right:
+            return BinaryOperator(self.operator, x, y)
+        return self
+
+    def evaluate(self, values):
+        left = self.left.evaluate(values).optimize()
+        right = self.right.evaluate(values).optimize()
+        if left != self.left or right != self.right:
+            return BinaryOperator(self.operator, left, right)
+        return self
+
+    def apply(self, k, v):
+        left = self.left.apply(k, v).optimize()
+        right = self.right.apply(k, v).optimize()
+        if left != self.left or right != self.right:
+            return BinaryOperator(self.operator, left, right)
         return self
 
 
@@ -178,7 +240,7 @@ class If(object):
         self.false_branch = false_branch
 
     def __str__(self):
-        return f"IF {self.condition}:\nTHEN:\n  {self.true_branch}\nELSE:\n  {self.false_branch}"
+        return f"\nIF {self.condition}:\nTHEN: {self.true_branch}\nELSE: {self.false_branch}"
 
     def dump(self, level):
         dump(level, "IF")
@@ -189,19 +251,39 @@ class If(object):
         self.false_branch.dump(level + 1)
 
     def optimize(self):
-        c, updatec = self.condition.optimize()
+        c = self.condition.optimize()
         if type(c) is Boolean:
             # Do not optimize branches until the condition is evaluated.
             if c.value:
                 return self.true_branch.optimize()
             else:
                 return self.false_branch.optimize()
-        return self, updatec
+        return self
 
-    def evaluate(self, variable):
-        self.condition = self.condition.evaluate(variable)
-        self.true_branch = self.true_branch.evaluate(variable)
-        self.false_branch = self.false_branch.evaluate(variable)
+    def evaluate(self, values):
+        condition = self.condition.evaluate(values).optimize()
+        if type(condition) is Boolean:
+            if condition.value:
+                return self.true_branch.evaluate(values)
+            else:
+                return self.false_branch.evaluate(values)
+
+        if condition != self.condition:
+            return If(condition, self.true_branch, self.false_branch)
+        return self
+
+    def apply(self, k, v):
+        condition = self.condition.apply(k, v).optimize()
+        if type(condition) is Boolean:
+            if condition.value:
+                return self.true_branch.apply(k, v).optimize()
+            else:
+                return self.false_branch.apply(k, v).optimize()
+
+        true_branch = self.true_branch.apply(k, v).optimize()
+        false_branch = self.false_branch.apply(k, v).optimize()
+        if condition != self.condition or true_branch != self.true_branch or false_branch != self.false_branch:
+            return If(condition, true_branch, false_branch)
         return self
 
 
@@ -218,13 +300,31 @@ class LambdaEvaluator(BinaryOperator):
         dump(level, "WHERE")
         self.right.dump(level + 1)
 
-    def evaluate(self, variable):
-        self.right = self.right.evaluate(variable)
-        if type(self.left) == Lambda:
-            key = self.left.parameter
-            val = self.right
-            return self.left.definition.evaluate((key, val))
-        self.left = self.left.evaluate(variable)
+    def optimize(self):
+        x = self.left.optimize()
+        y = self.right.optimize()
+        if x != self.left or y != self.right:
+            return LambdaEvaluator(x, y)
+        return self
+
+    def evaluate(self, _):
+        left = self.left
+        if type(left) is Lambda:
+            key = left.parameter
+            value = self.right
+            # dump(0, f"Match x{key} = {value}")
+            return left.definition.apply(key, value).optimize()
+
+        left = left.evaluate(self.right).optimize()
+        if left != self.left:
+            return LambdaEvaluator(left, self.right)
+        return self
+
+    def apply(self, k, v):
+        left = self.left.apply(k, v).optimize()
+        right = self.right.apply(k, v).optimize()
+        if left != self.left or right != self.right:
+            return LambdaEvaluator(left, right)
         return self
 
 
@@ -241,21 +341,23 @@ class Lambda(object):
         self.definition.dump(level + 1)
 
     def optimize(self):
-        definition, updated = self.definition.optimize()
-        if updated:
-            return Lambda(self.parameter, definition), True
-        return self, False
+        definition = self.definition.optimize()
+        if definition != self.definition:
+            return Lambda(self.parameter, definition)
+        return self
 
-    def evaluate(self, variable):
-        if variable is None:
-            self.definition = self.definition.evaluate(variable)
+    def evaluate(self, values):
+        definition = self.definition.evaluate(values).optimize()
+        if definition != self.definition:
+            return Lambda(self.parameter, definition)
+        return self
+
+    def apply(self, k, v):
+        if self.parameter == k:
             return self
-
-        key, _ = variable
-        if key == self.parameter:
-            variable = None
-
-        self.definition = self.definition.evaluate(variable)
+        definition = self.definition.apply(k, v).optimize()
+        if definition != self.definition:
+            return Lambda(self.parameter, definition)
         return self
 
 
@@ -267,17 +369,17 @@ class Variable(object):
         return f"x{self.parameter}"
 
     def dump(self, level):
-        dump(level, "x{}".format(self.parameter))
+        dump(level, "v{}".format(self.parameter))
 
     def optimize(self):
-        return self, False
+        return self
 
-    def evaluate(self, variable):
-        if variable is None:
-            return self
-        key, val = variable
-        if key == self.parameter:
-            return val
+    def evaluate(self, _):
+        return self
+
+    def apply(self, k, v):
+        if self.parameter == k:
+            return copy.copy(v)
         return self
 
 
@@ -290,17 +392,19 @@ def compile(icfp, verbose=False):
     ast = parse(tokens)
     if verbose:
         dump(0, "Input")
-        ast.dump(0)
-        dump(0, "")
 
     count = 0
     while True:
-        ast, _ = ast.optimize()
         if verbose:
-            ast.dump(0)
-            dump(0, "")
-        ast = ast.evaluate(None)
-        if type(ast) is String or count > 5:
+            # ast.dump(0)
+            if count % 4 == 0:
+                dump(0, f'{ast}\n')
+                exit(0)
+        next = ast.evaluate(None).optimize()
+        if next == ast:
+            break
+        ast = next
+        if type(ast) is String or count > 10000000:
             break
         count += 1
     return ast
@@ -436,7 +540,6 @@ class TestICFP(unittest.TestCase):
         ]
         for icfp, expect in data:
             actual = icfp2ascii(icfp)
-
             self.assertEqual(actual, expect)
 
     def test_lambda(self):
@@ -489,9 +592,31 @@ class TestEfficiency(unittest.TestCase):
         self.assertEqual(type(ast), Integer)
         return ast.value
 
-    def test_efficiency1(self):
-        value = self.run_test('1', verbose=True)
+    # Eval from the leaf node.
+    def dis_test_efficiency1(self):
+        value = self.run_test('1')
         self.assertEqual(value, 4**22)
+
+    # "* 0" operation results in 0.
+    def dis_test_efficiency2(self):
+        value = self.run_test('2')
+        self.assertEqual(value, 2134)
+
+    # Optimize the recursive call that produces too many "+1" operation.
+    def dis_test_efficiency3(self):
+        value = self.run_test('3')
+        self.assertEqual(value, 9345875634)
+
+    # Fibonacci number. Memo-ization is required.
+    def dis_test_efficiency4(self):
+        value = self.run_test('4')
+        self.assertEqual(value, 165580141)
+
+    # It outputs (2^k)-1 for x<(2^k)-1, where k is 2,3,5,7,13,17, and 31.
+    # Reason of the equence is not sure.
+    def dis_test_efficiency5(self):
+        value = self.run_test('5')
+        self.assertEqual(value, 2**31-1)
 
 if __name__ == '__main__':
     unittest.main()
