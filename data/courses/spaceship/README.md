@@ -7,31 +7,31 @@ Moves are represented with a single digit, inspired by the old numeric pad on a 
 Now the challenge is the following: given a list of squares to be visited, find a sequence of moves that visits all those squares. Your solution may consist of at most `10,000,000` moves.
 
 The following levels are available:
-* [spaceship1] Best score: 5.
-* [spaceship2] Best score: 50.
-* [spaceship3] Best score: 10.
-* [spaceship4] Best score: 1707.
-* [spaceship5] Best score: 431.
-* [spaceship6] Best score: 1990.
-* [spaceship7] Best score: 225.
-* [spaceship8] Best score: 215.
-* [spaceship9] Best score: 1848.
-* [spaceship10] Best score: 4138.
-* [spaceship11] Best score: 130255.
-* [spaceship12]
-* [spaceship13]
-* [spaceship14]
-* [spaceship15]
-* [spaceship16]
-* [spaceship17]
-* [spaceship18]
-* [spaceship19]
-* [spaceship20]
-* [spaceship21]
-* [spaceship22]
-* [spaceship23]
-* [spaceship24]
-* [spaceship25]
+* [spaceship1] Your score: 15. Best score: 5.
+* [spaceship2] Your score: 198. Best score: 49.
+* [spaceship3] Your score: 48. Best score: 10.
+* [spaceship4] Your score: 1707. Best score: 99.
+* [spaceship5] Your score: 431. Best score: 116.
+* [spaceship6] Your score: 1990. Best score: 117.
+* [spaceship7] Your score: 225. Best score: 94.
+* [spaceship8] Your score: 215. Best score: 90.
+* [spaceship9] Your score: 1848. Best score: 206.
+* [spaceship10] Your score: 4138. Best score: 304.
+* [spaceship11] Your score: 130255. Best score: 8192.
+* [spaceship12] Best score: 8192.
+* [spaceship13] Best score: 23791.
+* [spaceship14] Your score: 4450. Best score: 137.
+* [spaceship15] Your score: 121. Best score: 39.
+* [spaceship16] Your score: 9704. Best score: 1373.
+* [spaceship17] Your score: 1934. Best score: 415.
+* [spaceship18] Your score: 8822. Best score: 1839.
+* [spaceship19] Your score: 169501. Best score: 11328.
+* [spaceship20] Your score: 37011. Best score: 2351.
+* [spaceship21] Your score: 37132. Best score: 2412.
+* [spaceship22] Best score: 1136.
+* [spaceship23] Best score: 165298.
+* [spaceship24] Best score: 559159.
+* [spaceship25] Best score: 594346.
 
 To submit a solution, send an ICFP expression that evaluates to:
 
@@ -40,3 +40,4 @@ solve spaceshipX moves
 ```
 
 Your score is the number of moves, so a lower score is better.
+
