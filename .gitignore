@@ -41,6 +41,8 @@
 # build directories
 libs/*_build
 libs/*_vsbuild
-/vs/test/x64
-/vs/solver/x64
+/vs/*/x64
 __pycache__
+
+# Python
+/venv_*/
