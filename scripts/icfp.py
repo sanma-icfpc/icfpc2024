@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import requests
 
 import icfp_peria
@@ -30,6 +31,35 @@ def communicate(ascii_command, verbose=False, send_translate=True, recv_translat
 def icfp2ascii(icfp, verbose=False):
     return icfp_peria.icfp2ascii(icfp, verbose)
 
+def reduce_extended_icfp(extended_icfp):
+    '''
+    myfunc := L! U- v!
+    main := B$ $myfunc I#
+    みたいなのを入力として、B$ L! U- v! I# を出力する
+    '''
+    vardict = {}
+    for line in extended_icfp.splitlines():
+        line = line.strip()
+        if len(line) == 0:
+            continue
+        mo = re.match(r'^\s*([a-zA-Z0-9_]+)\s*:=\s*(.*)$', line)
+        if mo is None:
+            raise ValueError(f'invalid line: "{line}"')
+        name, value = mo.groups()
+        vardict[name] = value
+
+    def resolve(s):
+        for name, value in vardict.items():
+            s = re.sub(r'\$' + name + r'\b', value, s)
+        return s
+
+    def resolve_all(s):
+        step = resolve(s)
+        if step == s:
+            return step
+        return resolve_all(step)
+
+    return resolve_all(vardict['main'])
 
 mapping = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`|~ \n"
 crypt_map = {}
