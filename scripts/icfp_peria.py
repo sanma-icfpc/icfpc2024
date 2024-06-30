@@ -397,14 +397,12 @@ def compile(icfp, verbose=False):
     while True:
         if verbose:
             # ast.dump(0)
-            if count % 4 == 0:
-                dump(0, f'{ast}\n')
-                exit(0)
+            dump(0, f'{ast}\n')
         next = ast.evaluate(None).optimize()
         if next == ast:
             break
         ast = next
-        if type(ast) is String or count > 10000000:
+        if type(ast) is String or count > 1000000:
             break
         count += 1
     return ast
