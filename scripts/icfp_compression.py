@@ -30,11 +30,12 @@ program = '''
 single_base4_decode := L! ? B= I! B% v! I% SF ? B= I" B% v! I% SL ? B= I# B% v! I% SO S>
 single_base4_decode_0to3 := L! ? B= I! v! SF ? B= I" v! SL ? B= I# v! SO S>
 
+# decodegen = lambda f: (lambda n: (lambda i: 'LRUD'[i % 4] + ('' if n == 1 else f(n - 1)(i // 4))))
 # using
 #   v# -> f
 #   v$ -> n
 #   v% -> i
-decodegen := L# L$ L% B. ( $single_base4_decode_0to3 B% v% I% ) ( ? B= v$ I" ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% )
+decodegen := L# ( L$ ( L% B. ( B$ $single_base4_decode_0to3 B% v% I% ) ( ? ( B= v$ I" ) ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% ) ) )  
 
 # using
 #  vc -> f
@@ -62,9 +63,8 @@ Y := B$ ( Lf ( Lx B$ vf B$ vx vx ) ) ( Lx B$ vf B$ vx vx )
 #   vb
 Z := Lf B$ ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) ) ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) ) 
 
-# 何もしない
-main := B$ $Z $decodegen
 factorial := B$ $Z $factgen
+main := B$ $Z $decodegen
 #main := $Y $factgen
 #main := $Z $stopgen
 '''

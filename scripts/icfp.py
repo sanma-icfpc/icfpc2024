@@ -31,7 +31,7 @@ def communicate(ascii_command, verbose=False, send_translate=True, recv_translat
 def icfp2ascii(icfp, verbose=False):
     return icfp_peria.icfp2ascii(icfp, verbose)
 
-def reduce_extended_icfp(extended_icfp):
+def reduce_extended_icfp(extended_icfp, main='main'):
     '''
     myfunc := L! U- v!
     main := B$ $myfunc I#
@@ -61,7 +61,7 @@ def reduce_extended_icfp(extended_icfp):
             return step
         return resolve_all(step)
 
-    return resolve_all(vardict['main'])
+    return resolve_all(vardict[main])
 
 mapping = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`|~ \n"
 crypt_map = {}
