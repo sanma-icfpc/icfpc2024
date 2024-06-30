@@ -73,6 +73,7 @@ class Field {
     int cx = current_x();
     int cy = current_y();
     distance_[cy][cx] = 0;
+    visited_.push_back({cx, cy});
     std::queue<State> q;
     q.push({0, {cx, cy}});
     while (!q.empty()) {
@@ -92,6 +93,7 @@ class Field {
           continue;
         }
         distance_[y][x] = dist;
+        visited_.push_back({x, y});
         if (c == '.') {
           return {x, y};
         }
@@ -104,16 +106,35 @@ class Field {
 
  private:
   void Initialize() {
-    for (auto &&line : distance_) {
-      std::fill(line.begin(), line.end(), kNotVisited);
+    for (auto &&[x, y] : visited_) {
+      distance_[y][x] = kNotVisited;
     }
+    visited_.clear();
   }
 
   void GetStatistics() {
     num_pills_ = 0;
+    std::vector<int> neighbors(5);
     for (int i = 0; i < height_; ++i) {
       for (int j = 0; j < width_; ++j) {
         char c = raw_field_[i][j];
+        if (c == '#') {
+          continue;
+        }
+
+        int num_neighbors = 0;
+        for (auto &&dir : dirs) {
+          int x = j + dir.first;
+          int y = i + dir.second;
+          if (x < 0 || x >= width() || y < 0 || y >= height()) {
+            continue;
+          }
+          if (raw_field_[y][x] != '#') {
+            ++num_neighbors;
+          }
+        }
+        ++neighbors[num_neighbors];
+
         if (c == '.') {
           ++num_pills_;
         }
@@ -123,6 +144,8 @@ class Field {
         }
       }
     }
+    std::cerr << "Neighbors: " << neighbors[1] << " " << neighbors[2] << " "
+              << neighbors[3] << " " << neighbors[4] << "\n";
   }
 
   std::vector<std::string> raw_field_;
@@ -133,6 +156,7 @@ class Field {
   int current_y_ = -1;
 
   std::vector<std::vector<int>> distance_;
+  std::vector<std::pair<int, int>> visited_;
   const std::vector<std::pair<int, int>> dirs{{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
 };
 
@@ -157,12 +181,11 @@ int main(int argc, char *argv[]) {
   std::ios::sync_with_stdio(false);
   std::cin.tie(NULL);
 
+  std::unique_ptr<Field> field = Field::Parse(std::cin);
+  std::string solution = Solve(*field);
   if (argc > 1) {
     std::cout << "solve lambdaman" << argv[1] << " ";
   }
-
-  std::unique_ptr<Field> field = Field::Parse(std::cin);
-  std::string solution = Solve(*field);
   std::cout << solution << std::endl;
 
   return 0;
