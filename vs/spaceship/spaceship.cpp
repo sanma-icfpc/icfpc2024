@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <set>
 #include <stack>
 #include <vector>
 
@@ -16,6 +17,15 @@ struct State {
 struct Position {
     int x;
     int y;
+
+    bool operator<(const Position& rh) const {
+        if (x != rh.x) {
+            return x < rh.x;
+        }
+        else {
+            return y < rh.y;
+        }
+    }
 };
 
 struct Acceleration {
@@ -319,14 +329,35 @@ int main_spaceship(int argc, char* argv[])
     InitializeVisitingOrder();
     std::cerr << "Called InitializeVisitingOrder()" << std::endl;
 
-    for (int order_index = 0; order_index + 1 < POSITIONS.size(); ++order_index) {
-        const auto& source = POSITIONS[VISITING_ORDER[order_index]];
-        const auto& destination = POSITIONS[VISITING_ORDER[order_index + 1]];
+    std::set<Position> visited = { { 0, 0 } };
+    int position_x = 0;
+    int velocity_x = 0;
+    int position_y = 0;
+    int velocity_y = 0;
+    auto source = POSITIONS[0];
+
+    for (int order_index = 1; order_index < POSITIONS.size(); ++order_index) {
+        const auto& destination = POSITIONS[VISITING_ORDER[order_index]];
+
+        if (visited.find(destination) != visited.end()) {
+            continue;
+        }
+
         std::vector<Acceleration> acceleration_2d;
         GetPath2D(source, destination, acceleration_2d);
+
         for (const auto& acceleration : acceleration_2d) {
+            velocity_x += acceleration.x;
+            position_x += velocity_x;
+            velocity_y += acceleration.y;
+            position_y += velocity_y;
+
+            visited.insert({ position_x, position_y });
+
             std::cout << acceleration.ToDigit();
         }
+
+        source = destination;
     }
     std::cout << std::endl;
 

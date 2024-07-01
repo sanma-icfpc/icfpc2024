@@ -1,5 +1,5 @@
 #!/bin/sh
-for i in {25..25}
+for i in {1..25}
 do
   echo "${i}"
 
