@@ -1,5 +1,6 @@
 ﻿#include <algorithm>
 #include <array>
+#include <chrono>
 #include <deque>
 #include <iostream>
 #include <limits>
@@ -308,6 +309,176 @@ void InitializeVisitingOrder() {
     }
 }
 
+namespace
+{
+    static constexpr int TIME_LIMIT_MS = 10 * 1000;
+
+    // https://ja.wikipedia.org/wiki/Xorshift
+    uint32_t xor64(void) {
+        static uint64_t x = 88172645463325252ULL;
+        x = x ^ (x << 13); x = x ^ (x >> 7);
+        return x = x ^ (x << 17);
+    }
+
+    int64_t elapsedMs(const std::chrono::system_clock::time_point& startTime) {
+        const auto now = std::chrono::system_clock::now();
+        return std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+    }
+}
+
+//TODO:状態を表す型/構造体を作成する
+class STATE {
+public:
+    //TODO:コンストラクタに必要な引数を追加する
+    explicit STATE();
+    void next();
+    void prev();
+    double energy();
+
+    std::vector<int> visiting_order;
+private:
+    // TODO(nodchip): 3-optに対応する。
+    int swapped0;
+    int swapped1;
+    int swapped2;
+    int opt;
+};
+
+class SimulatedAnnealing {
+public:
+    //TODO:コンストラクタに必要な引数を追加する
+    SimulatedAnnealing();
+    STATE run();
+private:
+    double calculateProbability(double score, double scoreNeighbor, double temperature);
+};
+
+//TODO:コンストラクタに必要な引数を追加する
+SimulatedAnnealing::SimulatedAnnealing() {
+}
+
+STATE SimulatedAnnealing::run() {
+    const auto startTime = std::chrono::system_clock::now();
+    STATE state;
+    double energy = state.energy();
+    STATE result = state;
+    double minEnergy = energy;
+    int counter = 0;
+    int64_t timeCurrent;
+    while (elapsedMs(startTime) < TIME_LIMIT_MS) {
+        for (int loop = 0; loop < 100; ++loop) {
+            state.next();
+            const double energyNeighbor = state.energy();
+            const double random = xor64() * 0.00000000023283064365386962890625;
+            const double probability = calculateProbability(energy, energyNeighbor, elapsedMs(startTime) / double(TIME_LIMIT_MS) + 1e-8);
+            if (random < probability) {
+                //Accept
+                if (minEnergy > energyNeighbor) {
+#ifdef _MSC_VER
+                    fprintf(stderr, "minEnergy updated! %.5lf -> %.5lf\n", minEnergy, energyNeighbor);
+#endif
+                    minEnergy = energyNeighbor;
+                    result = state;
+                }
+                //fprintf(stderr, "Accepted %.5lf -> %.5lf : minEnergy=%.5lf\n", energy, energyNeighbor, minEnergy);
+                energy = energyNeighbor;
+            }
+            else {
+                //Decline
+                state.prev();
+                //fprintf(stderr, "Declined\n");
+            }
+            ++counter;
+        }
+    }
+    fprintf(stderr, "counter:%d minEnergy:%.5lf\n", counter, minEnergy);
+    return result;
+}
+
+double SimulatedAnnealing::calculateProbability(double energy, double energyNeighbor, double temperature) {
+    if (energyNeighbor < energy) {
+        return 1;
+    }
+    else {
+        const double result = exp((energy - energyNeighbor) / (temperature + 1e-9) * 1.0);
+        //fprintf(stderr, "%lf -> %lf * %lf = %lf\n", energy, energyNeighbor, temperature, result);
+        return result;
+    }
+}
+
+//TODO:初期状態を作る関数を記述する
+STATE::STATE() {
+    visiting_order = VISITING_ORDER;
+}
+
+//TODO:遷移後の状態を作る関数を記述する
+void STATE::next() {
+    opt = xor64() % 2 + 2;
+
+    switch (opt)
+    {
+    case 2:
+        swapped0 = xor64() % (visiting_order.size() - 1) + 1;
+        do {
+            swapped1 = xor64() % (visiting_order.size() - 1) + 1;
+        } while (swapped0 == swapped1);
+
+        std::swap(visiting_order[swapped0], visiting_order[swapped1]);
+        break;
+
+    case 3:
+        swapped0 = xor64() % (visiting_order.size() - 1) + 1;
+        do {
+            swapped1 = xor64() % (visiting_order.size() - 1) + 1;
+        } while (swapped0 == swapped1);
+        do {
+            swapped2 = xor64() % (visiting_order.size() - 1) + 1;
+        } while (swapped0 == swapped2 && swapped1 == swapped2);
+
+        std::swap(visiting_order[swapped0], visiting_order[swapped1]);
+        std::swap(visiting_order[swapped1], visiting_order[swapped2]);
+        break;
+
+    default:
+        break;
+    }
+}
+
+//TODO:遷移前の状態を作る関数を記述する
+//     高々一つ前の状態までに戻れれば良い
+void STATE::prev() {
+    switch (opt)
+    {
+    case 2:
+        std::swap(visiting_order[swapped0], visiting_order[swapped1]);
+        break;
+
+    case 3:
+        std::swap(visiting_order[swapped1], visiting_order[swapped2]);
+        std::swap(visiting_order[swapped0], visiting_order[swapped1]);
+        break;
+
+    default:
+        break;
+    }
+}
+
+//TODO:状態のエネルギーを計算する関数を記述する
+//     状態はエネルギーの低い所に遷移する点に注意する
+double STATE::energy() {
+    int num_steps = 0;
+    for (int order_index = 0; order_index + 1 < visiting_order.size(); ++order_index) {
+        // 本当はすでに通ったsquareはスキップしたいが、
+        // 経路を1ターンずつシミュレーションすると時間がかかるため、
+        // シミュレーションは省く。
+        const auto& source = POSITIONS[visiting_order[order_index]];
+        const auto& destination = POSITIONS[visiting_order[order_index + 1]];
+        num_steps += GetNumSteps2D(source, destination);
+    }
+    return num_steps;
+}
+
+
 int main_spaceship(int argc, char* argv[])
 {
     //TestGetPath1D();
@@ -329,6 +500,9 @@ int main_spaceship(int argc, char* argv[])
     InitializeVisitingOrder();
     std::cerr << "Called InitializeVisitingOrder()" << std::endl;
 
+    SimulatedAnnealing optimizer;
+    auto optimized_state = optimizer.run();
+
     std::set<Position> visited = { { 0, 0 } };
     int position_x = 0;
     int velocity_x = 0;
@@ -337,7 +511,7 @@ int main_spaceship(int argc, char* argv[])
     auto source = POSITIONS[0];
 
     for (int order_index = 1; order_index < POSITIONS.size(); ++order_index) {
-        const auto& destination = POSITIONS[VISITING_ORDER[order_index]];
+        const auto& destination = POSITIONS[optimized_state.visiting_order[order_index]];
 
         if (visited.find(destination) != visited.end()) {
             continue;
