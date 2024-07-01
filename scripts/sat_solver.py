@@ -122,21 +122,28 @@ def efficient9():
     print("Guarantee to have a solution!")
 
     assign = {}
-    for x in reversed(xs):
+    i = len(xs) - 1
+    while i >= 0:
+        x = xs[i]
+        name = str(x)
         a = None
-        for v in range(9):
+        for v in range(assign.get(name, -1) + 1, 9):
             solver.push()
             solver.add(x == v)
             if solver.check() == z3.sat:
                 a = v
-                solver.pop(1)
                 break
             solver.pop(1)
         if a is None:
-            print(f"Error for {x}")
-            return
-        solver.add(x == a)
-        assign[str(x)] = a
+            print(f"No valid solution for {name}")
+            solver.pop(1)
+            if name in assign:
+                del assign[name]
+            i += 1
+            continue
+        assign[name] = a
+        i -= 1
+        print(assign)
 
     print(assign)
 
@@ -150,8 +157,8 @@ def efficient9():
 
 
 def main():
-    efficient8()
-    # efficient9()
+    # efficient8()
+    efficient9()
 
 if __name__ == '__main__':
     main()
