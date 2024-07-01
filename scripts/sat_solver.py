@@ -5,38 +5,74 @@ import z3
 import sys
 
 def efficient8():
-    xs = [z3.Bool("x%d" % (i + 1)) for i in range(50)]
     solver = z3.Solver()
 
+    terms = []
     for line in sys.stdin:
         if line.strip() == "":
             break
-        vs = [re.sub('[^!0123456789]', '', x.strip()) for x in line.split(' | ')]
-        ps = [xs[int(v[1:])-1] == False if v[0] == '!' else xs[int(v)-1] == True for v in vs]
-        solver.add(z3.Or(ps))
+        vs = [re.sub('[^!|x0123456789]', '', x.strip()) for x in line.split(' & ')]
+        terms.extend(vs)
+    # print(terms)
 
-    result = solver.check()
-    if result == z3.unsat:
+    xs = []
+    for t in terms:
+        vs = re.sub('!', '', t).split('|')
+        xs.extend(vs)
+    xs = list(set(xs))
+    xs.sort(key=lambda x: int(x[1:]))
+    xs = [z3.Bool(x) for x in xs]
+    # print(xs)
+
+    def find(x):
+        for v in xs:
+            if x == str(v):
+                return v
+        return None
+
+    def convert(x):
+        name = x[1:] if x[0] == '!' else x
+        v = find(name)
+        return v == (x[0] == 'x')
+
+    for t in terms:
+        vs = list(map(convert , t.split('|')))
+        ps = z3.Or(vs)
+        print(ps)
+        solver.add(ps)
+
+    if solver.check() == z3.unsat:
         print("UNSAT")
         return
 
-    model = solver.model()
+    print("Guarantee to have a solution!")
 
-    answer = 0
-    result = [re.sub('[^TF=0123456789]', '', x) for x in str(model).split("\n")]
-    for x in result:
-        k, v = x.split("=")
-        k = int(k) - 1
-        if v == 'T':
-            answer += 2 ** k
-    print(answer)
+    assign = {}
+    for x in reversed(xs):
+        a = None
+        for v in (False, True):
+            solver.push()
+            solver.add(x == v)
+            if solver.check() == z3.sat:
+                a = v
+                solver.pop(1)
+                break
+            solver.pop(1)
+        if a is None:
+            print(f"Error for {x}")
+            return
+        solver.add(x == a)
+        assign[str(x)] = 1 if a else 0
 
-    n = answer
-    icfp = ''
-    while n > 0:
-        icfp = chr(n % 94 + 33) + icfp
-        n //= 94
-    print("I" + icfp)
+    print(assign)
+
+    value = 0
+    for x in reversed(xs):
+        v = assign[str(x)]
+        print(v, end='')
+        value = value * 2 + v
+    print()
+    print(value)
 
 
 def efficient9():

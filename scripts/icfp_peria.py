@@ -629,9 +629,10 @@ class TestEfficiency(unittest.TestCase):
         self.assertEqual(value, 584302217761)
 
     # Same as efficiency7, but use 50bits. Use Z3 to solve SAT.
+    # There are some assignments that satisfy the conditions. Select the miminum one.
     def dis_test_efficiency8(self):
-        value = self.run_test('8')
-        self.assertEqual(value, 495312880560634)
+        value = self.run_test('8', verbose=True, sleep_time=1)
+        self.assertEqual(value, 422607674157562)
 
     def dis_test_efficiency9(self):
         value = self.run_test('9', verbose=True)
