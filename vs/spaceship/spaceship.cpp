@@ -513,6 +513,10 @@ void OutputStrictPath(const std::vector<int>& visiting_order) {
     std::cout << std::endl;
 }
 
+int64_t Distance(int64_t x0, int64_t y0, int64_t x1, int64_t y1) {
+    return (x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1);
+}
+
 void OutputBeamSearchPath(const std::vector<int>& visiting_order) {
     std::set<Position> visited = { { 0, 0 } };
     auto source = POSITIONS[0];
@@ -529,7 +533,7 @@ void OutputBeamSearchPath(const std::vector<int>& visiting_order) {
         // ビームサーチ
         const constexpr int BEAM_WIDTH = 1000;
         struct State {
-            int distance;
+            int64_t distance;
             int position_x;
             int velocity_x;
             int position_y;
@@ -543,7 +547,7 @@ void OutputBeamSearchPath(const std::vector<int>& visiting_order) {
             }
         };
         State initial_state = {
-            std::max(std::abs(destination.x - source.x), std::abs(destination.y - source.y)),
+            Distance(source.x, source.y, destination.x, destination.y),
             source.x, last_velocity_x, source.y, last_velocity_y, 0, 0, nullptr
         };
         std::vector<std::vector<State>> history;
@@ -574,7 +578,7 @@ void OutputBeamSearchPath(const std::vector<int>& visiting_order) {
                         new_state.velocity_y += acceleration_y;
                         new_state.position_x += new_state.velocity_x;
                         new_state.position_y += new_state.velocity_y;
-                        new_state.distance = std::max(std::abs(destination.x - new_state.position_x), std::abs(destination.y - new_state.position_y));
+                        new_state.distance = Distance(new_state.position_x, new_state.position_y, destination.x, destination.y);
                         new_q.push(new_state);
                         if (new_q.size() > BEAM_WIDTH) {
                             new_q.pop();

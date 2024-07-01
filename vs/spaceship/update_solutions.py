@@ -22,6 +22,7 @@ def main():
 
         source_file_size = os.path.getsize(source_file_path)
         destination_file_size = os.path.getsize(destination_file_path)
+        print(f'source_file_size={source_file_size} destination_file_size={destination_file_size}')
 
         if source_file_size >= destination_file_size:
             print("The destination file is smaller than the source file. Do nothing.")
