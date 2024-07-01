@@ -195,7 +195,7 @@ class RLE(object):
         print()
         preamble = encrypt(f'solve {problem}{problem_num} ')
         SIZE_RUN_LENGTH = 2**run_bits
-        SIZE_RUN = 2**(2 + run_bits)
+        SIZE_RUN = 2**(self.bits + run_bits)
         header = f'''
         CHARS := S{encrypt(self.chars)}
         2_POW_CHAR_BITS := I{I_encode(2 ** self.bits)}
