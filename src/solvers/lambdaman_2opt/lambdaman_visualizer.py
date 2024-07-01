@@ -42,6 +42,8 @@ class Board:
                 else:
                     row += " "
             print(row)
+        print(f"remaining pills: {len(self.pills)}")
+        print(f"visited pills: {len(self.visited_pills)}")
 
     def go_path(self, path:str, wait_cnt:int=1) -> None:
         """
@@ -60,6 +62,7 @@ class Board:
             
             if next_wait == 0:
                 self.print_board()
+                print("walk counts", cnt)
                 next_wait = input()
                 # check input is digit
                 
@@ -74,13 +77,16 @@ class Board:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=1)
     parser.add_argument("--sln")
     parser.add_argument("--wait", type=int, default=1)
     args = parser.parse_args()
 
-    board_str = open(f"data/courses/lambdaman/problems/lambdaman{args.n}.txt", "r").read().strip().split("\n")
+    with open(args.sln) as f:
+        sln_str = f.read().split(" ")
+    
+    board_id = int(sln_str[1].strip().replace("lambdaman", ""))
+    board_str = open(f"data/courses/lambdaman/problems/lambdaman{board_id}.txt", "r").read().strip().split("\n")
+    sln = sln_str[2]
     board = Board(board_str)
     # board.print_board()
-    print(args.sln)
-    board.go_path(args.sln, args.wait)
+    board.go_path(sln, args.wait)
