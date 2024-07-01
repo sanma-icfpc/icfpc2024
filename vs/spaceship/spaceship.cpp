@@ -298,10 +298,8 @@ void InitializeVisitingOrder() {
     }
 }
 
-int main(int argc, char* argv[])
+int main_spaceship(int argc, char* argv[])
 {
-    std::cout << "solve spaceship" << argv[1] << " ";
-
     //TestGetPath1D();
     //TestGetPath2D();
 
