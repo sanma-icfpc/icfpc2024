@@ -527,7 +527,7 @@ void OutputBeamSearchPath(const std::vector<int>& visiting_order) {
         }
 
         // ビームサーチ
-        const constexpr int BEAM_WIDTH = 100;
+        const constexpr int BEAM_WIDTH = 1000;
         struct State {
             int distance;
             int position_x;
