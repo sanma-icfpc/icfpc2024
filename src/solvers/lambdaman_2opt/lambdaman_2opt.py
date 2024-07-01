@@ -7,15 +7,62 @@ import numpy as np
 from typing import List, Tuple, Dict
 
 
-action_dict = {
-    (1, 0): "R",
-    (-1, 0): "L",
-    (0, 1): "D",
-    (0, -1): "U"
-}
+action_dicts = [
+    {
+        (1, 0): "R",
+        (-1, 0): "L",
+        (0, 1): "D",
+        (0, -1): "U"
+    },
+    {
+        (0, 1): "D",
+        (0, -1): "U",
+        (1, 0): "R",
+        (-1, 0): "L"
+    },
+    {
+        (-1, 0): "L",
+        (1, 0): "R",
+        (0, 1): "D",
+        (0, -1): "U"
+    },
+    {
+        (0, -1): "U",
+        (0, 1): "D",
+        (1, 0): "R",
+        (-1, 0): "L"
+    },
+    {
+        (1, 0): "R",
+        (-1, 0): "L",
+        (0, -1): "U",
+        (0, 1): "D",
+    },
+    {
+        (0, 1): "D",
+        (0, -1): "U",
+        (-1, 0): "L",
+        (1, 0): "R",
+    },
+    {
+        (-1, 0): "L",
+        (1, 0): "R",
+        (0, -1): "U",
+        (0, 1): "D",
+    },
+    {
+        (0, -1): "U",
+        (0, 1): "D",
+        (-1, 0): "L",
+        (1, 0): "R",
+    },
+]
+
+
+
 
 class Board:
-    def __init__(self, board: List[str]) -> None:
+    def __init__(self, board: List[str], action_dict:Dict[Tuple[int, int], str]) -> None:
         self.board = board
         self.y_size = len(board)
         self.x_size = len(board[0])
@@ -33,7 +80,8 @@ class Board:
                     self.pills.append((x, y))
                 elif board[y][x] == '#':
                     self.walls.append((x, y))
-                
+        self.action_dict = action_dict
+
     def finish(self) -> bool:
         return len(self.pills) == 0
 
@@ -77,7 +125,7 @@ class Board:
         """
         def get_adjacent(pos: Tuple[int, int]) -> List[Tuple[int, int]]:
             x, y = pos
-            return [(1, 0), (-1, 0), (0, 1), (0, -1)]
+            return self.action_dict.keys()
         
         def is_valid_pos(pos: Tuple[int, int]) -> bool:
             x, y = pos
@@ -130,24 +178,35 @@ class Board:
                 self.pills.remove(self.lambdaman)
 
 
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--n", type=int, default=1)
     args = parser.parse_args()
 
-    board_str = open(f"data/courses/lambdaman/problems/lambdaman{args.n}.txt", "r").read().strip().split("\n")
-    board = Board(board_str)
-    # board.print_board()
-    out = ""
-    while not board.finish():
-        path = board.find_nearest_pill(board.lambdaman)
-        board.go_path(path[1])
-        print(path[1], len(board.pills))
-        out += "".join([action_dict[p] for p in path[1]])
-        # board.print_board()
-    board.print_board()
-    print(out)
-    with open(f"lambdaman_sln_{args.n}.txt", "w") as f:
-        f.write(out)
+    if args.n == -1:
+        indice = [i for i in range(1, 20)]
+    else:
+        indice = [args.n]
+
+    for idx in indice:
+        board_str = open(f"data/courses/lambdaman/problems/lambdaman{idx}.txt", "r").read().strip().split("\n")
+        best = ""
+        for k in range(8):
+            board = Board(board_str, action_dict=action_dicts[k])
+            # board.print_board()
+            out = ""
+            while not board.finish():
+                path = board.find_nearest_pill(board.lambdaman)
+                board.go_path(path[1])
+                print(path[1], len(board.pills))
+                out += "".join([board.action_dict[p] for p in path[1]])
+                # board.print_board()
+            board.print_board()
+            if len(out) < len(best) or best == "":
+                best = out
+            print(out)
+        with open(f"lambdaman_sln_{idx}.txt", "w") as f:
+            f.write(f"solve lambdaman{idx} {best}")
 
