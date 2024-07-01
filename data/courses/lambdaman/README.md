@@ -21,25 +21,25 @@ When Lambda-Man is instructed to move into a square containing a wall, nothing h
 The following levels are available:
 * [lambdaman1] Your score: 33. Best score: 33.
 * [lambdaman2] Your score: 44. Best score: 44.
-* [lambdaman3] Your score: 72. Best score: 58.
-* [lambdaman4] Your score: 394. Best score: 136.
-* [lambdaman5] Your score: 211. Best score: 142.
-* [lambdaman6] Best score: 73.
-* [lambdaman7] Your score: 465. Best score: 125.
-* [lambdaman8] Your score: 4917. Best score: 113.
-* [lambdaman9] Best score: 110.
-* [lambdaman10] Best score: 143.
-* [lambdaman11] Your score: 10007. Best score: 404.
-* [lambdaman12] Your score: 10011. Best score: 661.
-* [lambdaman13] Your score: 9995. Best score: 463.
-* [lambdaman14] Your score: 10013. Best score: 741.
-* [lambdaman15] Your score: 10005. Best score: 317.
-* [lambdaman16] Your score: 8209. Best score: 245.
-* [lambdaman17] Your score: 2863. Best score: 127.
-* [lambdaman18] Best score: 1060.
-* [lambdaman19] Your score: 16364. Best score: 278.
-* [lambdaman20] Best score: 526.
-* [lambdaman21] Best score: 723.
+* [lambdaman3] Your score: 64. Best score: 58.
+* [lambdaman4] Your score: 268. Best score: 111.
+* [lambdaman5] Your score: 165. Best score: 105.
+* [lambdaman6] Your score: 74. Best score: 73.
+* [lambdaman7] Your score: 288. Best score: 111.
+* [lambdaman8] Your score: 403. Best score: 113.
+* [lambdaman9] Your score: 123. Best score: 109.
+* [lambdaman10] Your score: 2485. Best score: 113.
+* [lambdaman11] Your score: 3041. Best score: 132.
+* [lambdaman12] Your score: 3001. Best score: 132.
+* [lambdaman13] Your score: 3010. Best score: 132.
+* [lambdaman14] Your score: 3029. Best score: 129.
+* [lambdaman15] Your score: 3020. Best score: 129.
+* [lambdaman16] Your score: 2648. Best score: 134.
+* [lambdaman17] Your score: 941. Best score: 113.
+* [lambdaman18] Best score: 117.
+* [lambdaman19] Your score: 5138. Best score: 237.
+* [lambdaman20] Best score: 177.
+* [lambdaman21] Best score: 114.
 
 To submit a solution, send an ICFP expression that evaluates to:
 
