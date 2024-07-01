@@ -68,6 +68,7 @@ def repl(verbose=False):
             # local evaluation
             try:
                 response = icfp.icfp2ascii(command, verbose)
+                print_system(f'COMMAND LENGTH = {len(command)}, RESPONSE LENGTH = {len(response)}')
             except:
                 print('ERROR.')
                 continue

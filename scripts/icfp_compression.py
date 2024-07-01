@@ -83,6 +83,37 @@ factorial := B$ $Y $factgen
 basex_decode := B$ $Y $basex_decodegen
 '''
 
+class LambdamanDangomushi(object):
+    '''ダンゴムシのように右回り左回りを切り替えながら進む。それぞれの回り方は壁に当たることを前提に長めに歩く。
+    右と左ないし右と左の切り替えをランレングス圧縮する。'''
+    def __init__(self, stride):
+        self.bits = 1 # 1文字を表現するのに必要なビット数
+        self.chars = 'rl' # r: CW, l: CCW
+        self.rev = dict((c, i) for i, c in enumerate(self.chars))
+        self.stride = stride # stride=50のときCWはR50D50L50U50を基本単位とする
+
+    def decode(self, run_bits, num_runs, rle_int):
+        '''RLEされた整数値をLRUD..に展開する
+        あとでこの関数をICFP化する'''
+        result = ''
+        SIZE_RUN_LENGTH = 2**run_bits
+        SIZE_RUN = 2**(self.bits + run_bits)
+        R = self.stride * 4
+        t = 0
+        previdx = 0
+        for i in range(num_runs):
+            idx = rle_int % (2**self.bits)
+            run_length = (rle_int >> self.bits) % SIZE_RUN_LENGTH
+            rle_int //= SIZE_RUN
+            if previdx != idx:
+                t = (R - 1 - t % R) - (R - 1 - t % R) % 4
+            for j in range(run_length):
+                k = t // self.stride % 4
+                result += ['RDLU', 'LDRU'][idx][k]
+                t += 1
+            previdx = idx
+        return result
+
 class RLE(object):
     def __init__(self, bits, chars):
         self.bits = bits
@@ -157,7 +188,7 @@ class RLE(object):
         SIZE_RUN_LENGTH = 2**run_bits
         SIZE_RUN = 2**(self.bits + run_bits)
         for i in range(num_runs):
-            idx = rle_int % self.bits
+            idx = rle_int % (2**self.bits)
             run_length = (rle_int >> self.bits) % SIZE_RUN_LENGTH
             rle_int //= SIZE_RUN
             result += self.chars[idx] * run_length
@@ -171,7 +202,7 @@ class RLE(object):
         if num_runs == 0:
             return ''
         else:
-            idx = rle_int % self.bits
+            idx = rle_int % (2**self.bits)
             run_length = (rle_int >> self.bits) % SIZE_RUN_LENGTH
             return self.chars[idx] * run_length + self.rle_decode_recursive(run_bits, num_runs - 1, rle_int // SIZE_RUN)
 
@@ -195,7 +226,7 @@ class RLE(object):
         print()
         preamble = encrypt(f'solve {problem}{problem_num} ')
         SIZE_RUN_LENGTH = 2**run_bits
-        SIZE_RUN = 2**(2 + run_bits)
+        SIZE_RUN = 2**(self.bits + run_bits)
         header = f'''
         CHARS := S{encrypt(self.chars)}
         2_POW_CHAR_BITS := I{I_encode(2 ** self.bits)}
@@ -267,6 +298,15 @@ class BaseX(object):
 lambdaman_base4 = BaseX('LRUD')
 spaceship_base9 = BaseX('123456789')
 
+class TestLambdamanDangomushi(unittest.TestCase):
+    def test_decode(self):
+        dangomushi = LambdamanDangomushi(4)
+        self.assertEqual(dangomushi.decode(run_bits=5, num_runs=1, rle_int=0b10001_0), 'RRRRDDDDLLLLUUUUR') # CW17
+        self.assertEqual(dangomushi.decode(run_bits=5, num_runs=2, rle_int=0b10000_1_10010_0), 'RRRRDDDDLLLLUUUURR' + 'UUUULLLLDDDDRRRR') # CW18 + CCW16, CW R-> CCW U
+        self.assertEqual(dangomushi.decode(run_bits=5, num_runs=2, rle_int=0b00010_1_00110_0), 'RRRRDD' + 'RR') # CW D->CCW R
+        self.assertEqual(dangomushi.decode(run_bits=5, num_runs=2, rle_int=0b00010_1_01010_0), 'RRRRDDDDLL' + 'DD') # CW L->CCW D
+        self.assertEqual(dangomushi.decode(run_bits=5, num_runs=2, rle_int=0b00010_1_01110_0), 'RRRRDDDDLLLLUU' + 'LL') # CW U->CCW L
+
 class TestICFPCompression(unittest.TestCase):
     def test_rle(self):
         self.assertEqual(lambdaman_rle.rle_encode('RRUU'), (2, 2, 0b1010_1001))
@@ -317,7 +357,7 @@ class TestICFPCompression(unittest.TestCase):
         decodegen = lambda f: (lambda n: (lambda i: 'LRUD'[i % 4] + ('' if n == 1 else f(n - 1)(i // 4))))
         decode = Z(decodegen)
 
-        encoded_int = base4_decode('LRUD')
+        encoded_int = lambdaman_base4.decode('LRUD')
         self.assertEqual(decode(4)(encoded_int), 'LRUD')
 
 
@@ -377,7 +417,7 @@ if __name__ == '__main__':
             else:
                 print(f'{problem}{num} NO IMPROVEMENT')
     else:
-        #unittest.main()
+        unittest.main()
 
         #lambdaman17 = "DDDDDDDDDDDUUULUUUUUUUUULUUUUUUULLLLLDDDDDDDDDDDDDDUUURUUUUUURDDDDDDURUUUUUUULLLLDDDLUUDLDDDDDLLLUUUURRRDDDDRRRRRRRURDRRDDDDRRUUDDDDDULLLUUUUUUUUULUUUULRRUUUUUUUULLLUUUUUUUUUUUUUUUUUUUUUULUUUUULUUUUUUUUUUUUUUDDDDDLLLLUUUUUUUUULUULLLUUUUUUULLLLLDDDDDDDDDDDDDDDLLLUUUUUUUDRRRRRRRRDDDDDDDDUUUUUULLLLLUUUURURDRURDRRRRDDDDDRDDDDDDRRRRRLDDDDLDDDDDDDDDDDDDDDDDDDDLUUUUUUUUUUUULUUUUUUUUUDDLDDDLUUUULDDDDDLUULDDDDDDLUUUUUUULDDDDDDDDDDRUULULUUUULLUUUUUDDLDDDDDDDLRRUUUDRDDDDDDDDDDDLLLLLUUUULDLULUUUUUUUUULUUUUUULDDDDDDRRDRDURRRRLLLLLDLLLLDDDLLLDDDDDDDDDDDDDDDDLLLLDLLLLDDDDDDDDDUUUUUUUUULLLLLLLLDDDDULLLLLDDDLLLLUUUUUURRRRRUUUUUURUUULLUUUUULLRRRRRRDDDDDDDDLURRRRRDDRRRRRURRRRRRUUULLUURRRRRRDDDDDDRUUUUUUUUULRRDDRUURDDDDDDDDDLUULUURRRRRRDDDLULDDDDLLLLLUURULLLULDLLDDDLLLLLLRRRRRRRRRRRUURRRRUURRDDURRURDRURRRRRUUUUUUUURRRUUUUULDDDRRUUUUUDRRRRRDDDDDRDDDDDDDDDDDDDDDDDDDLUUUUUUUUUUUUUUUUULLLUUUULUDDDDDDDDDDDDDDLLUUUURRRUUUULLUUULDDRDDLLLLLLLLLLLLLLLLLLLDLDDLLLDRDRRRRRRRRDDDDRRRRRUUDDDDRRRRRUUUUUURRRRRRURRRRRRUUUUUURDDDDDDDDDDLUUURRUUUUUUURUUULLLUUUUUUULLUUULLDDLDRRDDRRRRUURDDRUURDDDUURRRRURDDDDDLUUURRUUUURURDDLRRUURDDDDDDDDLLLUULDDRDDDDDDDDDDDDDDDDDUUUUUULLUUUUUUUUUDLDDDDDDDDULULUUUUUUUUULRRLDDDDDLLULDDDDDDDDDDLUDDDDDDLDLULUURULLLLULDDDDDDDDDDDDDLLLLUUUUULLRRRRUUUUUURRRLDDRDDDDDDRUUDRRDDUUUURLLLLLULLLLRRDDDURRRRURRUURRURUUUUURRLUUUURUUURDDDRUUUUURRRURURRDRURDDDRRRRRUUUULDDLUUDLDLUUUUUUUUUUUUDRRRDDDDDRUUUUUUUUUUUUUUUULLLLDDRRRRRDRURDDDDDDDDDDDDDDLUULDDRRRURUUUUUUUUUUUUULRRRRRLLLLLLDDDDLLRRDDDDRDRDDDRDDLRUURRRRRRDDDDDDDDDDDRRRRRRUUUURUUUURRRRDDDDDDDDDDUUUUUULLLLDDDDDDDDDDLLLLLDDDDDDDDDRDDDDDDDDDDLLLLULULDDLUULDDDDDDDDDLLLLLDDDDDDLLLLLDDDDDRRRRRRRRRRDDDDDDLLLLLRRRRRRRRRRRDDDDDDUUURUUUUULLLLLLLLLLLLLLLLLLDDDDDDDDDDUUULLLLLLLLUUUULLLLLLLLDLULDDDDDDDULLLLLLUUULLDDDDDDDDDDDDDDDDDDDDLRRRUUUULRDDDDRRDDDDDDDDDDLUUUUUUULLLLRRRRRRRRRRRDDDDDDDDDLLUUUUUULLLLDDRDDRUURDDDDDDDDDRRRUURRRDDDDDDDUUULLLUURRRUURRRUUUUUUUUUUUULLLUUUDLRRRRRDDDRRRUULLRRRRLLLLLDLDDDDDDDDDDDDDDDDLLLLLLUULLLUUUUURUUUURUULLLLLUUUUUURRLLLLLLUUUUUUUUURURUUUUUUDDLLLLLRRRDDDDLRRRDRRRLLLUUUUUUUUUUURLLLLLRRRRDDDRRRRRRUUUUULURRRRRRRRRRRDDDDRRRRRRRRRLUUUUUUURRRRRRRRRRRUUUURRRUUUUUUDDDDDDRRRLLLLLLDDDDRRRRRRRRDRURDRURDLLLLLDDDRRRRLLLLLUULLLLLLUUUUUULLLLLLLLLLUUUUURRRRRUUUUUURRRRRUUUUUUULLLUUUURRRLLLDDRRLLDDDDDDUUUURRRRRRRRRRRUUUUURRRLLLUUUUULUUUUUUUUURRRRRUUUUUULLLLLLLUUUUUUUUUUULLLLLLLDLLLLLLUUUULLLDDDDDRLLLLRRRDDRRRRRRRRRRRRDDLLLLDDLLLLUURRRLLLLLDLLLLLLDDDDDRRRRRRLLLLLLDDDLLLULLLLLLLLLLLLLLLLLDDDDDLULDLLULDLURRRUUUUUUUUUULUUUUUUUUUULLLLDDDDLLLLLLULLUUUUULLUUUUUUUUUURRRRRRRLLLLLLLDDDDDRLUUUUURRRRRRRRUUURRRUURRRRRUUUUUUURRRRRDDRRUUURUUUUUDDDDDDDDRUUURDDDRUUURDDDDDDDDDRRUULUUUUUUUUUUUDDDDDDRRRRDDDLLLLDDRDDRRDDDDDRRRRUUULLUULRRRRLLLDDRRDDRDRURDRURDLLLLLLLLLUUUUULLLLUUUUUULLLLLUULLLLLLLLLLLLDDDDDDDDDLLLDDDLLLLLLLLDDDDDDDDDDRRRDDDDDRDDLLLLDDDLLLDDDDDDDDLLDDDLLLLLLDLLLLLUULLLLUUL"
         #with open('lambdaman17_compress.txt', 'w') as fo:
