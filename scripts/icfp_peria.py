@@ -622,9 +622,15 @@ class TestEfficiency(unittest.TestCase):
         value = self.run_test('6')
         self.assertEqual(value, 42)
 
+    # Solve SAT with 40 variables and encode them into a decimal number.
     def dis_test_efficiency7(self):
         value = self.run_test('7')
         self.assertEqual(value, 584302217761)
+
+    # Same as efficiency7, but use 50bits. Use Z3 to solve SAT.
+    def dis_test_efficiency8(self):
+        value = self.run_test('8', verbose=True)
+        self.assertEqual(value, 495312880560634)
 
 if __name__ == '__main__':
     unittest.main()
