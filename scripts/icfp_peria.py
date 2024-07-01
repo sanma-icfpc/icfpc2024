@@ -649,5 +649,11 @@ class TestEfficiency(unittest.TestCase):
         value = self.run_test('10', verbose=True)
         self.assertEqual(value, 14967753016278151754281739121556345272360285170537031718346799308781591772932)
 
+    # Exactly same as efficiency11.
+    def dis_test_efficiency11(self):
+        sys.setrecursionlimit(10000)
+        value = self.run_test('11', verbose=True, sleep_time=1)
+        self.assertEqual(value, 100573847453233330105890470844482405072957615231969369459908387717689164043268)
+
 if __name__ == '__main__':
     unittest.main()
