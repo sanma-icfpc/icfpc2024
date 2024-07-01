@@ -57,7 +57,11 @@ def editor(problem_file):
     
     def print_board(board):
         for row in board:
-            print(''.join(row))
+            print(''.join(row)
+                  .replace('L', colorama.Back.GREEN + colorama.Fore.WHITE + 'L' + colorama.Style.RESET_ALL)
+                  .replace('.', colorama.Back.BLUE + colorama.Fore.WHITE + '.' + colorama.Style.RESET_ALL)
+                  .replace('#', colorama.Back.WHITE + colorama.Fore.WHITE + '#' + colorama.Style.RESET_ALL)
+                  )
 
     t = 0
     force_emit = False
