@@ -16,6 +16,10 @@ def clear_screen():
 def move_cursor_top_left():
     sys.stdout.write('\033[H')
 
+def move_cursor_up_left(lines=1):
+    sys.stdout.write(f'\x1b[{lines}A')
+    sys.stdout.write(f'\x1b[G')
+
 def getch():
     # 標準入力のファイルディスクリプタを取得
     fd = sys.stdin.fileno()
@@ -29,6 +33,8 @@ def getch():
         
         # 1文字だけ読み込む
         ch = sys.stdin.read(1)
+        if ch == '\x1b':  # エスケープシーケンスの開始
+            ch += sys.stdin.read(2)  # 矢印キーは3文字から成るため、残り2文字を読む
     
     finally:
         # 端末設定を元に戻す
@@ -99,10 +105,17 @@ def editor(problem_file):
             fredo()
 
     rotation = 'CW'
+    clear_screen()
     while True:
-        clear_screen()
         move_cursor_top_left()
         print_board(board)
+
+        # clear below the board
+        info_area_size = 20
+        for i in range(info_area_size):
+            print(' '*120)
+        move_cursor_up_left(info_area_size)
+
         print(f'Time: {t}, Direction: {rotation}')
         print('Move: WASD  Undo/Redo: <>  Toggle force emit: T')
         print(f'Sequence({len(sequence):3d}): {"".join(sequence)}')
@@ -117,10 +130,10 @@ def editor(problem_file):
             break
         if ch.lower() == 't':
             force_emit = not force_emit
-        if ch.lower() == 'w': t += move( 0, -1, 'U')
-        if ch.lower() == 'a': t += move(-1,  0, 'L')
-        if ch.lower() == 's': t += move( 0,  1, 'D')
-        if ch.lower() == 'd': t += move( 1,  0, 'R')
+        if ch.lower() == 'w' or ch == '\x1b[A': t += move( 0, -1, 'U')
+        if ch.lower() == 'a' or ch == '\x1b[D': t += move(-1,  0, 'L')
+        if ch.lower() == 's' or ch == '\x1b[B': t += move( 0,  1, 'D')
+        if ch.lower() == 'd' or ch == '\x1b[C': t += move( 1,  0, 'R')
         if ch.lower() == '<': undo()
         if ch.lower() == '>': redo()
     
@@ -152,4 +165,4 @@ def editor(problem_file):
 
 if __name__ == '__main__':
     colorama.init(True)
-    editor('../data/courses/lambdaman/problems/lambdaman4.txt')
+    editor(sys.argv[1])
