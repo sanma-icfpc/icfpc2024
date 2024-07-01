@@ -636,9 +636,18 @@ class TestEfficiency(unittest.TestCase):
         value = self.run_test('8', verbose=True, sleep_time=1)
         self.assertEqual(value, 422607674157562)
 
+    # Same as efficiency8, but use 80 digits in 9-ary number.
+    # Need to backtrack when some assignments are not satisfied.
     def dis_test_efficiency9(self):
         value = self.run_test('9', verbose=True)
-        self.assertEqual(value, 495312880560634)
+        self.assertEqual(value, 3072297283032850841637141056325154790039828427723724157541484782406577456068)
+
+    # Same as efficiency9, but use variables have assignments.
+    # Note that in ICFP, the values are +1'ed, and the order is opposite.
+    def dis_test_efficiency10(self):
+        sys.setrecursionlimit(10000)
+        value = self.run_test('10', verbose=True)
+        self.assertEqual(value, 14967753016278151754281739121556345272360285170537031718346799308781591772932)
 
 if __name__ == '__main__':
     unittest.main()
