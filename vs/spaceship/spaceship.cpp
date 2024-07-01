@@ -81,7 +81,7 @@ void GetPath1D(int start, int goal, std::vector<int>& accelerations) {
     int distance = std::abs(start - goal);
     int num_accelerations = CalculateNumAccelerations(distance);
     accelerations.insert(accelerations.end(), num_accelerations, 1);
-    
+
     int remainder_distance = distance - (num_accelerations * num_accelerations);
     for (int velocity = num_accelerations; velocity > 0; --velocity) {
         while (remainder_distance >= velocity) {
@@ -195,47 +195,79 @@ void TestGetPath2D() {
 
 std::vector<std::vector<int>> MINIMUM_SPANNING_TREE;
 
+struct UnionFind {
+    std::vector<int> parents;
+    UnionFind(int n) : parents(n, -1) { }
+
+    int Find(int i) {
+        if (parents[i] < 0) {
+            return i;
+        }
+
+        parents[i] = Find(parents[i]);
+        return parents[i];
+    }
+
+    void Union(int i, int j) {
+        int root_i = Find(i);
+        int root_j = Find(j);
+        if (root_i == root_j) {
+            return;
+        }
+
+        if (root_i > root_j) {
+            std::swap(root_i, root_j);
+        }
+        parents[root_i] += parents[root_j];
+        parents[root_j] = root_i;
+    }
+};
+
+struct Edge {
+    int cost;
+    int source;
+    int destination;
+
+    bool operator<(const Edge& rh) const {
+        if (cost != rh.cost) {
+            return cost < rh.cost;
+        }
+        else if (source != rh.source) {
+            return source < rh.source;
+        }
+        else {
+            return destination < rh.destination;
+        }
+    }
+};
+
 void InitializeMinimumSpanningTree() {
-    // プリム法で最小全域木を求める。
+    // クラスカル法で最小全域木を求める。
     int num_nodes = POSITIONS.size();
     MINIMUM_SPANNING_TREE.resize(num_nodes);
 
-    std::multimap<int, std::pair<int, int>> edges;
-    std::vector<bool> visited(num_nodes);
-    visited[0] = true;
-    for (int destination = 1; destination < num_nodes; ++destination) {
-        int cost = GetNumSteps2D(POSITIONS[0], POSITIONS[destination]);
-        edges.insert(std::make_pair(cost, std::make_pair(0, destination)));
-    }
-    int num_visited = 1;
-
-    int counter = 0;
-    while (!edges.empty() && num_visited < num_nodes) {
-        if (++counter % 10000 == 0) {
-            std::cerr << "counter=" << counter << " edges.size()=" << edges.size() << std::endl;
+    std::vector<Edge> edges;
+    for (int source = 0; source < num_nodes; ++source) {
+        for (int destination = source + 1; destination < num_nodes; ++destination) {
+            int cost = GetNumSteps2D(POSITIONS[source], POSITIONS[destination]);
+            edges.emplace_back(Edge{ cost, source, destination });
         }
+    }
 
-        int source = edges.begin()->second.first;
-        int destination = edges.begin()->second.second;
-        edges.erase(edges.begin());
+    std::sort(edges.begin(), edges.end());
 
-        if (visited[destination]) {
+    UnionFind components(num_nodes);
+    for (const auto& edge : edges) {
+        if (components.Find(edge.source) == components.Find(edge.destination)) {
             continue;
         }
 
-        ++num_visited;
+        components.Union(edge.source, edge.destination);
+        MINIMUM_SPANNING_TREE[edge.source].push_back(edge.destination);
+        MINIMUM_SPANNING_TREE[edge.destination].push_back(edge.source);
 
-        visited[destination] = true;
-        MINIMUM_SPANNING_TREE[source].push_back(destination);
-        MINIMUM_SPANNING_TREE[destination].push_back(source);
-
-        for (int new_destination = 0; new_destination < num_nodes; ++new_destination) {
-            if (visited[new_destination]) {
-                continue;
-            }
-
-            int cost = GetNumSteps2D(POSITIONS[destination], POSITIONS[new_destination]);
-            edges.insert(std::make_pair(cost, std::make_pair(destination, new_destination)));
+        if (components.parents[0] == -num_nodes) {
+            break;
         }
     }
 }
