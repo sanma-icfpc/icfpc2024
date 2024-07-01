@@ -3,6 +3,7 @@
 from collections import deque
 from pathlib import Path
 import copy
+import re
 import sys
 import time
 import unittest
@@ -388,6 +389,7 @@ def dump(level, message):
 
 
 def compile(icfp, verbose=False, sleep_time=0):
+    icfp = re.sub(r'\s+', ' ', icfp).strip()
     tokens = deque(icfp.split(' '))
     ast = parse(tokens)
     if verbose:
