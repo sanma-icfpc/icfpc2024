@@ -636,9 +636,16 @@ class TestEfficiency(unittest.TestCase):
         value = self.run_test('8', verbose=True, sleep_time=1)
         self.assertEqual(value, 422607674157562)
 
+    # Same as efficiency8, but use 80 digits in 9-ary number.
+    # Need to backtrack when some assignments are not satisfied.
     def dis_test_efficiency9(self):
         value = self.run_test('9', verbose=True)
-        self.assertEqual(value, 495312880560634)
+        self.assertEqual(value, 3072297283032850841637141056325154790039828427723724157541484782406577456068)
+
+    def test_efficiency10(self):
+        sys.setrecursionlimit(10000)
+        value = self.run_test('10', verbose=True, sleep_time=0)
+        self.assertEqual(value, 14967484978596994980850884961887571173780070871033647013518225308847706096003)
 
 if __name__ == '__main__':
     unittest.main()

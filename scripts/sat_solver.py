@@ -89,8 +89,10 @@ def efficient9():
     xs = []
     for t in terms:
         x, y = re.sub('!', '', t).split('=')
-        xs.append(x)
-        xs.append(y)
+        if 'x' in x:
+            xs.append(x)
+        if 'x' in y:
+            xs.append(y)
     xs = list(set(xs))
     xs.sort()
     xs = [z3.Int(x) for x in xs]
@@ -104,8 +106,9 @@ def efficient9():
         for v in xs:
             if x == str(v):
                 return v
-        return None
+        return int(x)
 
+    assigned = {}
     for t in terms:
         x, y = re.sub('!', '', t).split('=')
         x = find(x)
@@ -114,6 +117,8 @@ def efficient9():
             solver.add(x != y)
         else:
             solver.add(x == y)
+        if type(y) is int and '!' not in t:
+            assigned[str(x)] = y
 
     if solver.check() == z3.unsat:
         print("UNSAT")
@@ -121,11 +126,16 @@ def efficient9():
 
     print("Guarantee to have a solution!")
 
-    assign = {}
+    assign = assigned.copy()
     i = len(xs) - 1
+    di = -1
     while i >= 0:
         x = xs[i]
         name = str(x)
+        if name in assigned:
+            i += di
+            continue
+
         a = None
         for v in range(assign.get(name, -1) + 1, 9):
             solver.push()
@@ -140,9 +150,11 @@ def efficient9():
             if name in assign:
                 del assign[name]
             i += 1
+            di = 1
             continue
         assign[name] = a
         i -= 1
+        di = -1
         print(assign)
 
     print(assign)
@@ -154,7 +166,12 @@ def efficient9():
         value = value * 9 + v
     print()
     print(value)
-
+    n = value
+    icfp = ''
+    while n > 0:
+        icfp = chr(n % 94 + 33) + icfp
+        n //= 94
+    print(icfp)
 
 def main():
     # efficient8()
