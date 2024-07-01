@@ -398,7 +398,7 @@ def compile(icfp, verbose=False):
         if verbose:
             # ast.dump(0)
             dump(0, f'{ast}\n')
-            # time.sleep(1)
+            # time.sleep(0.5)
         next = ast.evaluate(None).optimize()
         if next == ast:
             break
@@ -621,6 +621,10 @@ class TestEfficiency(unittest.TestCase):
     def dis_test_efficiency6(self):
         value = self.run_test('6')
         self.assertEqual(value, 42)
+
+    def dis_test_efficiency7(self):
+        value = self.run_test('7')
+        self.assertEqual(value, 584302217761)
 
 if __name__ == '__main__':
     unittest.main()
