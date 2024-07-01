@@ -5,6 +5,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <queue>
 #include <set>
 #include <stack>
 #include <vector>
@@ -478,6 +479,164 @@ double STATE::energy() {
     return num_steps;
 }
 
+void OutputStrictPath(const std::vector<int>& visiting_order) {
+    std::set<Position> visited = { { 0, 0 } };
+    int position_x = 0;
+    int velocity_x = 0;
+    int position_y = 0;
+    int velocity_y = 0;
+    auto source = POSITIONS[0];
+
+    for (int order_index = 1; order_index < POSITIONS.size(); ++order_index) {
+        const auto& destination = POSITIONS[visiting_order[order_index]];
+
+        if (visited.find(destination) != visited.end()) {
+            continue;
+        }
+
+        std::vector<Acceleration> acceleration_2d;
+        GetPath2D(source, destination, acceleration_2d);
+
+        for (const auto& acceleration : acceleration_2d) {
+            velocity_x += acceleration.x;
+            position_x += velocity_x;
+            velocity_y += acceleration.y;
+            position_y += velocity_y;
+
+            visited.insert({ position_x, position_y });
+
+            std::cout << acceleration.ToDigit();
+        }
+
+        source = destination;
+    }
+    std::cout << std::endl;
+}
+
+void OutputBeamSearchPath(const std::vector<int>& visiting_order) {
+    std::set<Position> visited = { { 0, 0 } };
+    auto source = POSITIONS[0];
+    int last_velocity_x = 0;
+    int last_velocity_y = 0;
+
+    for (int order_index = 1; order_index < POSITIONS.size(); ++order_index) {
+        const auto& destination = POSITIONS[VISITING_ORDER[order_index]];
+
+        if (visited.find(destination) != visited.end()) {
+            continue;
+        }
+
+        // ビームサーチ
+        const constexpr int BEAM_WIDTH = 100;
+        struct State {
+            int distance;
+            int position_x;
+            int velocity_x;
+            int position_y;
+            int velocity_y;
+            int last_acceleration_x;
+            int last_acceleration_y;
+            const State* last_state;
+            bool operator<(const State& rh) const {
+                // 目標地点との距離が大きいものをpop()したい。
+                return distance < rh.distance;
+            }
+        };
+        State initial_state = {
+            std::abs(destination.x - source.x) + std::abs(destination.y - source.y),
+            source.x, last_velocity_x, source.y, last_velocity_y, 0, 0, nullptr
+        };
+        std::vector<std::vector<State>> history;
+        std::priority_queue<State> q;
+        q.push(initial_state);
+
+        bool found = false;
+        while (!found) {
+            std::priority_queue<State> new_q;
+            std::vector<State> states;
+
+            while (!q.empty()) {
+                states.push_back(q.top());
+                q.pop();
+            }
+
+            history.push_back(states);
+
+            // historyに代入したあと、Stateのポインターの値が変わらないことを利用する。
+            for (const auto& state : history.back()) {
+                for (int acceleration_x = -1; acceleration_x <= 1; ++acceleration_x) {
+                    for (int acceleration_y = -1; acceleration_y <= 1; ++acceleration_y) {
+                        auto new_state = state;
+                        new_state.last_state = &state;
+                        new_state.last_acceleration_x = acceleration_x;
+                        new_state.last_acceleration_y = acceleration_y;
+                        new_state.velocity_x += acceleration_x;
+                        new_state.velocity_y += acceleration_y;
+                        new_state.position_x += new_state.velocity_x;
+                        new_state.position_y += new_state.velocity_y;
+                        new_state.distance = std::abs(destination.x - new_state.position_x) + std::abs(destination.y - new_state.position_y);
+                        new_q.push(new_state);
+                        if (new_q.size() > BEAM_WIDTH) {
+                            new_q.pop();
+                        }
+
+                        if (destination.x == new_state.position_x && destination.y == new_state.position_y) {
+                            found = true;
+                        }
+                    }
+                }
+            }
+
+            std::swap(q, new_q);
+        }
+
+        {
+            std::vector<State> states;
+            while (!q.empty()) {
+                states.push_back(q.top());
+                q.pop();
+            }
+            history.push_back(states);
+        }
+
+        int position_x = source.x;
+        int position_y = source.y;
+        int velocity_x = last_velocity_x;
+        int velocity_y = last_velocity_y;
+
+        const State* state = nullptr;
+        for (const auto& last_state : history.back()) {
+            if (last_state.position_x == destination.x && last_state.position_y == destination.y) {
+                state = &last_state;
+                last_velocity_x = last_state.velocity_x;
+                last_velocity_y = last_state.velocity_y;
+                break;
+            }
+        }
+
+        std::vector<Acceleration> acceleration_2d;
+        while (state->last_state) {
+            acceleration_2d.emplace_back(Acceleration{ state->last_acceleration_x, state->last_acceleration_y });
+            state = state->last_state;
+        }
+
+        std::reverse(acceleration_2d.begin(), acceleration_2d.end());
+
+        for (const auto& acceleration : acceleration_2d) {
+            velocity_x += acceleration.x;
+            position_x += velocity_x;
+            velocity_y += acceleration.y;
+            position_y += velocity_y;
+
+            visited.insert({ position_x, position_y });
+
+            std::cout << acceleration.ToDigit();
+        }
+
+        source = destination;
+    }
+    std::cout << std::endl;
+}
 
 int main_spaceship(int argc, char* argv[])
 {
@@ -503,37 +662,8 @@ int main_spaceship(int argc, char* argv[])
     SimulatedAnnealing optimizer;
     auto optimized_state = optimizer.run();
 
-    std::set<Position> visited = { { 0, 0 } };
-    int position_x = 0;
-    int velocity_x = 0;
-    int position_y = 0;
-    int velocity_y = 0;
-    auto source = POSITIONS[0];
-
-    for (int order_index = 1; order_index < POSITIONS.size(); ++order_index) {
-        const auto& destination = POSITIONS[optimized_state.visiting_order[order_index]];
-
-        if (visited.find(destination) != visited.end()) {
-            continue;
-        }
-
-        std::vector<Acceleration> acceleration_2d;
-        GetPath2D(source, destination, acceleration_2d);
-
-        for (const auto& acceleration : acceleration_2d) {
-            velocity_x += acceleration.x;
-            position_x += velocity_x;
-            velocity_y += acceleration.y;
-            position_y += velocity_y;
-
-            visited.insert({ position_x, position_y });
-
-            std::cout << acceleration.ToDigit();
-        }
-
-        source = destination;
-    }
-    std::cout << std::endl;
+    //OutputStrictPath(optimized_state.visiting_order);
+    OutputBeamSearchPath(optimized_state.visiting_order);
 
     return 0;
 }
