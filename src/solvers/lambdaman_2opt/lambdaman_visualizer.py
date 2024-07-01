@@ -1,3 +1,5 @@
+import os
+import sys
 import numpy as np
 from typing import List, Tuple, Dict
 
@@ -8,6 +10,15 @@ action_dict_inv = {
     "D" : (0, 1),
     "U" : (0, -1)
 }
+
+def clear_screen():
+    if os.name == 'nt':  # Windowsの場合
+        os.system('cls')
+    else:  # Unix/Linux/Macの場合
+        os.system('clear')
+
+def move_cursor_top_left():
+    sys.stdout.write('\033[H')
 
 class Board:
     def __init__(self, board: List[str]) -> None:
@@ -61,6 +72,8 @@ class Board:
             next_wait -= 1
             
             if next_wait == 0:
+                clear_screen()
+                move_cursor_top_left()
                 self.print_board()
                 print("walk counts", cnt)
                 next_wait = input()
