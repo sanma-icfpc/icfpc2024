@@ -543,7 +543,7 @@ void OutputBeamSearchPath(const std::vector<int>& visiting_order) {
             }
         };
         State initial_state = {
-            std::abs(destination.x - source.x) + std::abs(destination.y - source.y),
+            std::max(std::abs(destination.x - source.x), std::abs(destination.y - source.y)),
             source.x, last_velocity_x, source.y, last_velocity_y, 0, 0, nullptr
         };
         std::vector<std::vector<State>> history;
@@ -574,7 +574,7 @@ void OutputBeamSearchPath(const std::vector<int>& visiting_order) {
                         new_state.velocity_y += acceleration_y;
                         new_state.position_x += new_state.velocity_x;
                         new_state.position_y += new_state.velocity_y;
-                        new_state.distance = std::abs(destination.x - new_state.position_x) + std::abs(destination.y - new_state.position_y);
+                        new_state.distance = std::max(std::abs(destination.x - new_state.position_x), std::abs(destination.y - new_state.position_y));
                         new_q.push(new_state);
                         if (new_q.size() > BEAM_WIDTH) {
                             new_q.pop();
