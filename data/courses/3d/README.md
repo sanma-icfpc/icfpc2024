@@ -169,7 +169,7 @@ The minimal value of `dt` is `1`, which means stepping back one time step.
 
 5. If two different warp operators attempt to write different values into the same destination cell at the same destination time, the simulation will crash.
 
-   Writing the same value into the same cell is fine, as is writing different values into different cells.
+   Warping the same value into the same cell is fine, as is warping different values into different cells. (This is different from basic 2D reduction, which does not allow writing the same value into the same cell by two different operators.)
 
 6. If two different warp operators attempt to travel to different times in the same tick, the simulation will crash.
 
@@ -202,18 +202,18 @@ When running this for `A = 3` and `B = 4`, this program has a spacetime volume o
 
 The following problems are available:
 
-* [3d1] Best score: 4800.
-* [3d2] Best score: 2400.
-* [3d3] Best score: 1736.
-* [3d4] Best score: 2340.
-* [3d5] Best score: 3456.
-* [3d6] Best score: 3840.
-* [3d7] Best score: 13872.
-* [3d8] Best score: 58500.
-* [3d9] Best score: 37548.
-* [3d10] Best score: 187488.
-* [3d11]
-* [3d12] Best score: 105840.
+* [3d1] Your score: 7425. Best score: 2982.
+* [3d2] Your score: 5110. Best score: 1250.
+* [3d3] Your score: 4088. Best score: 1225.
+* [3d4] Your score: 15730. Best score: 1872.
+* [3d5] Your score: 34560. Best score: 2592.
+* [3d6] Your score: 6741. Best score: 2800.
+* [3d7] Your score: 49392. Best score: 7290.
+* [3d8] Best score: 28210.
+* [3d9] Your score: 79902. Best score: 12760.
+* [3d10] Your score: 283176. Best score: 40261.
+* [3d11] Best score: 66792.
+* [3d12] Best score: 21978.
 
 To submit a solution, send an ICFP expression that evaluates to `solve 3dX` followed by your 3D program, e.g.:
 

@@ -387,7 +387,7 @@ def dump(level, message):
     print("| " * level + message, file=sys.stderr)
 
 
-def compile(icfp, verbose=False):
+def compile(icfp, verbose=False, sleep_time=0):
     tokens = deque(icfp.split(' '))
     ast = parse(tokens)
     if verbose:
@@ -398,7 +398,8 @@ def compile(icfp, verbose=False):
         if verbose:
             # ast.dump(0)
             dump(0, f'{ast}\n')
-            # time.sleep(0.5)
+            if sleep_time > 0:
+                time.sleep(sleep_time)
         next = ast.evaluate(None).optimize()
         if next == ast:
             break
@@ -583,11 +584,11 @@ class TestEfficiency(unittest.TestCase):
     ROOT_DIR = SCRIPT_DIR.parent
     PROBLEMS_DIR = ROOT_DIR / 'data' / 'courses' / 'efficiency' / 'problems'
 
-    def run_test(self, id, verbose=False):
+    def run_test(self, id, verbose=False, sleep_time=0):
         filename = f'efficiency{id}.icfp'
         with open(self.PROBLEMS_DIR / filename) as f:
             icfp = f.read().strip()
-        ast = compile(icfp, verbose)
+        ast = compile(icfp, verbose, sleep_time)
         self.assertEqual(type(ast), Integer)
         return ast.value
 
@@ -628,8 +629,13 @@ class TestEfficiency(unittest.TestCase):
         self.assertEqual(value, 584302217761)
 
     # Same as efficiency7, but use 50bits. Use Z3 to solve SAT.
+    # There are some assignments that satisfy the conditions. Select the miminum one.
     def dis_test_efficiency8(self):
-        value = self.run_test('8', verbose=True)
+        value = self.run_test('8', verbose=True, sleep_time=1)
+        self.assertEqual(value, 422607674157562)
+
+    def dis_test_efficiency9(self):
+        value = self.run_test('9', verbose=True)
         self.assertEqual(value, 495312880560634)
 
 if __name__ == '__main__':

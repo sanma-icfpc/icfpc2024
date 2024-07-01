@@ -17,7 +17,7 @@ The following assignments are available:
 * [efficiency5] You solved it.
 * [efficiency6] You solved it.
 * [efficiency7] You solved it.
-* [efficiency8] At least one other team solved it.
+* [efficiency8] You solved it.
 * [efficiency9] At least one other team solved it.
 * [efficiency10] At least one other team solved it.
 * [efficiency11] At least one other team solved it.
