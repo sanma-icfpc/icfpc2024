@@ -150,7 +150,7 @@ def editor(problem_file):
     path = ''.join(sequence)
     out_file = f'lambdaman{num}.manual.txt'
     with open(out_file, 'w') as fo:
-        fo.write(path)
+        fo.write('solve lambdaman{num} {path}')
 
     problem = 'lambdaman'
     base = 4
