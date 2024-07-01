@@ -25,101 +25,106 @@ struct Acceleration {
     }
 };
 
-int MAX_POSITION = 1000000;
-int MIN_POSITION = -MAX_POSITION;
-int MAX_VELOCITY = 500;
-int MIN_VELOCITY = -MAX_VELOCITY;
-int POSITION_OFFSET = MAX_POSITION;
-int VELOCITY_OFFSET = MAX_VELOCITY;
+int MAX_DISTANCE = 0;
 
-std::vector<int> NUM_STEPS_RAW;
-std::vector<int> LAST_ACCELERATION_RAW;
-
-int& GetNumSteps(int position, int velocity) {
-    return NUM_STEPS_RAW[(position + POSITION_OFFSET) * (MAX_VELOCITY - MIN_VELOCITY + 1) + (velocity + VELOCITY_OFFSET)];
-}
-
-int& GetLastAcceleration(int position, int velocity) {
-    return LAST_ACCELERATION_RAW[(position + POSITION_OFFSET) * (MAX_VELOCITY - MIN_VELOCITY + 1) + (velocity + VELOCITY_OFFSET)];
-}
-
+// 距離に対する、移動にかかるターン数。
+std::vector<int> NUM_STEPS;
 std::vector<Position> POSITIONS;
 
+int CalculateNumAccelerations(int distance) {
+    // [left,right]
+    // left回以上加速すると、distanceを超えるという状況を仮定する。
+    // left - 1が加速回数になる。
+    int64_t left = 0;
+    int64_t right = distance + 10;
+    while (left < right) {
+        int64_t middle = left + (right - left) / 2;
+        if (middle * middle <= distance) {
+            left = middle + 1;
+        }
+        else {
+            right = middle;
+        }
+    }
+
+    return static_cast<int>(left - 1);
+}
+
+int CalculateNumStepsDirectly(int distance) {
+    int num_accelerations = CalculateNumAccelerations(distance);
+    if (num_accelerations == 0) {
+        return 0;
+    }
+
+    int top_speed = num_accelerations;
+    int remainder_distance = distance - (num_accelerations * num_accelerations);
+    return num_accelerations * 2 + (remainder_distance + top_speed - 1) / top_speed;
+}
+
 void InitializeTable() {
-    std::deque<State> q;
-    q.push_back({ 0, 0, 0 });
-    GetNumSteps(0, 0) = 0;
-
-    int count = 0;
-    while (!q.empty()) {
-        if (++count % 10000000 == 0) {
-            std::cerr << "q.size()=" << q.size() << " q.front().num_steps=" << q.front().num_steps << std::endl;
-        }
-
-        State state = q.front();
-        q.pop_front();
-
-        if (GetNumSteps(state.position, state.velocity) != state.num_steps) {
-            continue;
-        }
-
-        for (int acceleration = -1; acceleration <= 1; ++acceleration) {
-            State next_state = state;
-            next_state.velocity += acceleration;
-            next_state.position += next_state.velocity;
-            next_state.num_steps += 1;
-
-            if (!(MIN_POSITION <= next_state.position && next_state.position <= MAX_POSITION)) {
-                continue;
-            }
-
-            if (!(MIN_VELOCITY <= next_state.velocity && next_state.velocity <= MAX_VELOCITY)) {
-                continue;
-            }
-
-            if (GetNumSteps(next_state.position, next_state.velocity) <= next_state.num_steps) {
-                continue;
-            }
-
-            GetNumSteps(next_state.position, next_state.velocity) = next_state.num_steps;
-            GetLastAcceleration(next_state.position, next_state.velocity) = acceleration;
-            q.push_back(next_state);
-        }
+    while (NUM_STEPS.size() <= MAX_DISTANCE) {
+        int distance = NUM_STEPS.size();
+        NUM_STEPS.push_back(CalculateNumStepsDirectly(distance));
     }
 }
 
 int GetNumSteps1D(int start, int goal) {
-    return GetNumSteps(goal - start, 0);
+    int distance = std::abs(start - goal);
+    return NUM_STEPS[distance];
 }
 
 void GetPath1D(int start, int goal, std::vector<int>& accelerations) {
     accelerations.clear();
 
-    int position = goal - start;
-    int velocity = 0;
-    while (!(position == 0 && velocity == 0)) {
-        int last_acceleration = GetLastAcceleration(position, velocity);
-        accelerations.push_back(last_acceleration);
-        position -= velocity;
-        velocity -= last_acceleration;
+    int distance = std::abs(start - goal);
+    int num_accelerations = CalculateNumAccelerations(distance);
+    accelerations.insert(accelerations.end(), num_accelerations, 1);
+    
+    int remainder_distance = distance - (num_accelerations * num_accelerations);
+    for (int velocity = num_accelerations; velocity > 0; --velocity) {
+        while (remainder_distance >= velocity) {
+            accelerations.push_back(0);
+            remainder_distance -= velocity;
+        }
+        accelerations.push_back(-1);
     }
 
-    std::reverse(accelerations.begin(), accelerations.end());
+    if (start > goal) {
+        for (auto& acceleration : accelerations) {
+            acceleration *= -1;
+        }
+    }
 }
 
-void TestGetPath1D() {
+void TestGetPath1D(int start, int goal) {
     std::vector<int> accelerations;
-    int start = 0;
-    int goal = 10;
     GetPath1D(start, goal, accelerations);
 
     int position = 0;
     int velocity = 0;
+    std::printf("(position, velocity) = (%d, %d)\n", position, velocity);
     for (int acceleration : accelerations) {
         velocity += acceleration;
         position += velocity;
         std::printf("(position, velocity) = (%d, %d)\n", position, velocity);
     }
+
+    std::printf("\n");
+}
+
+void TestGetPath1D() {
+    TestGetPath1D(0, 0);
+    TestGetPath1D(0, 1);
+    TestGetPath1D(0, 2);
+    TestGetPath1D(0, 3);
+    TestGetPath1D(0, 4);
+    TestGetPath1D(0, 5);
+    TestGetPath1D(0, 6);
+    TestGetPath1D(0, 7);
+    TestGetPath1D(0, 8);
+    TestGetPath1D(0, 9);
+    TestGetPath1D(0, 10);
+    TestGetPath1D(0, 11);
 }
 
 void Input() {
@@ -138,17 +143,9 @@ void Input() {
         POSITIONS.push_back({ x, y });
     }
 
+    MAX_DISTANCE = std::max(max_x - min_x, max_y - min_y);
+
     std::cerr << "min_x=" << min_x << " max_x=" << max_x << " min_y=" << min_y << " max_y=" << max_y << std::endl;
-
-    MAX_POSITION = std::max(max_x - min_x, max_y - min_y);
-    MIN_POSITION = -MAX_POSITION;
-    MAX_VELOCITY = std::sqrt(MAX_POSITION) + 10;
-    MIN_VELOCITY = -MAX_VELOCITY;
-    POSITION_OFFSET = MAX_POSITION;
-    VELOCITY_OFFSET = MAX_VELOCITY;
-
-    NUM_STEPS_RAW.resize((MAX_POSITION - MIN_POSITION + 1) * (MAX_VELOCITY - MIN_VELOCITY + 1), std::numeric_limits<int>::max() / 2);
-    LAST_ACCELERATION_RAW.resize((MAX_POSITION - MIN_POSITION + 1) * (MAX_VELOCITY - MIN_VELOCITY + 1));
 }
 
 int GetNumSteps2D(const Position& start, const Position& goal) {
@@ -193,14 +190,16 @@ void TestGetPath2D() {
     }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    //TestGetPath();
+    std::cout << "solve spaceship" << argv[1] << " ";
+
+    //TestGetPath1D();
     //TestGetPath2D();
 
-    std::cerr << "Calling InitializeTable()" << std::endl;
+    std::cerr << "Calling Input()" << std::endl;
     Input();
-    std::cerr << "Called InitializeTable()" << std::endl;
+    std::cerr << "Called Input()" << std::endl;
 
     std::cerr << "Calling InitializeTable()" << std::endl;
     InitializeTable();
