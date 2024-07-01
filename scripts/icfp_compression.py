@@ -14,16 +14,16 @@ single_base4_decode := L! ? B= I! B% v! I% SF ? B= I" B% v! I% SL ? B= I# B% v! 
 single_base4_decode_0to3_switch := L! ? B= I! v! SF ? B= I" v! SL ? B= I# v! SO S>
 single_base4_decode_0to3 := L! BT I" BD v! SFLO>
 
-# decodegen = lambda f: (lambda n: (lambda i: 'LRUD'[i % 4] + ('' if n == 1 else f(n - 1)(i // 4))))
+# basex_decodegen = lambda f: (lambda n: (lambda i: 'LRUD'[i % 4] + ('' if n == 1 else f(n - 1)(i // 4))))
 # using
 #   v# -> f
 #   v$ -> n
 #   v% -> i
-#decodegen := L# ( L$ ( L% B. ( B$ $single_base4_decode_0to3 B% v% I% ) ( ? ( B= v$ I" ) ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% ) ) )
+#basex_decodegen := L# ( L$ ( L% B. ( B$ $single_base4_decode_0to3 B% v% I% ) ( ? ( B= v$ I" ) ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% I% ) ) )
 # require
 #  $CHARS
 #  $N_CHARS
-decodegen := L# ( L$ ( L% B. ( BT I" BD B% v% $N_CHARS $CHARS ) ( ? ( B= v$ I" ) ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% $N_CHARS ) ) )
+basex_decodegen := L# ( L$ ( L% B. ( BT I" BD B% v% $N_CHARS $CHARS ) ( ? ( B= v$ I" ) ( S ) ( B$ ( B$ v# B- v$ I" ) ( B/ v% $N_CHARS ) ) )
 
 
 # repeatgen = lambda h: (lambda c: (lambda m: '' if m == 0 else c + h(c)(m - 1)))
@@ -44,7 +44,6 @@ repeat := B$ $Z $repeatgen
 #   $CHARS
 #   $2_POW_CHAR_BITS
 rle_decodegen := Lg ( Ln ( Li ? ( B= I! vn ) ( S ) ( B. ( B$ B$ $repeat ( BT I" BD B% vi $2_POW_CHAR_BITS $CHARS ) ( B% B/ vi $2_POW_CHAR_BITS $SIZE_RUN_LENGTH ) ) ( B$ B$ vg B- vn I" B/ vi $SIZE_RUN ) ) )
-rle_decode := B$ $Z $rle_decodegen
 
 # using
 #  vc -> f
@@ -54,8 +53,11 @@ factgen := Lc Ld ? B= I! vd I" B* vd B$ vc B- vd I"
 # 常に停止する再帰
 stopgen := Lc Ld I"
 
-# Y combinator
-Y := B$ ( Lf ( Lx B$ vf B$ vx vx ) ) ( Lx B$ vf B$ vx vx ) 
+# Y combinator. call-by-name の場合はこれでOK
+# Y = (λf . (λx . f (x x)) (λx . f (x x)))
+#Y := Lf B$ ( Lx B$ vf B$ vx vx ) ( Lx B$ vf B$ vx vx )
+# 更に短くできる
+Y := Lf B$ Lz B! vz vz ( Lx B$ vf B$ vx vx )
 
 # Z = lambda f: (lambda x: f (lambda y: x(x)(y))) (lambda x: f (lambda y: x(x)(y)))
 # def Z(f):
@@ -70,12 +72,15 @@ Y := B$ ( Lf ( Lx B$ vf B$ vx vx ) ) ( Lx B$ vf B$ vx vx )
 #   vy
 #   va
 #   vb
-Z := Lf B$ ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) ) ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) ) 
+# long version
+#Z := Lf B$ ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) ) ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) ) 
+# this is also acceptable
+Z := Lf B$ Lz B$ vz vz ( Lx B$ vf ( Ly B$ ( B$ vx vx ) vy ) )
 
-factorial := B$ $Z $factgen
-decode := B$ $Z $decodegen
-#main := $Y $factgen
-#main := $Z $stopgen
+# recursive functions
+rle_decode := B$ $Y $rle_decodegen
+factorial := B$ $Y $factgen
+basex_decode := B$ $Y $basex_decodegen
 '''
 
 class RLE(object):
@@ -254,7 +259,7 @@ class BaseX(object):
         '''
         print(f'[BASEX] CHARS = {self.chars}')
         print(f'[BASEX] N_CHARS = {self.alphabets}')
-        func = reduce_extended_icfp(header + program, 'decode')
+        func = reduce_extended_icfp(header + program, 'basex_decode')
         result = f'B. S{preamble} B$ B$ {func} I{I_encode(len(path))} {arg}'
         print(f'[BASEX]COMPRESSED({len(result)}):', result)
         return result
