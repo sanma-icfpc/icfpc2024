@@ -76,6 +76,7 @@ def efficient8():
 
 
 def efficient9():
+    reverse = True
     solver = z3.Solver()
 
     terms = []
@@ -94,7 +95,7 @@ def efficient9():
         if 'x' in y:
             xs.append(y)
     xs = list(set(xs))
-    xs.sort()
+    xs.sort(reverse=reverse, key=lambda x: int(x[1:]))
     xs = [z3.Int(x) for x in xs]
     for x in xs:
         ps = z3.Or([x == v for v in range(10)])
@@ -106,7 +107,7 @@ def efficient9():
         for v in xs:
             if x == str(v):
                 return v
-        return int(x)
+        return int(x) - 1
 
     assigned = {}
     for t in terms:
@@ -145,7 +146,7 @@ def efficient9():
                 break
             solver.pop(1)
         if a is None:
-            print(f"No valid solution for {name}")
+            # print(f"No valid solution for {name}")
             solver.pop(1)
             if name in assign:
                 del assign[name]
@@ -155,7 +156,7 @@ def efficient9():
         assign[name] = a
         i -= 1
         di = -1
-        print(assign)
+        # print(assign)
 
     print(assign)
 
